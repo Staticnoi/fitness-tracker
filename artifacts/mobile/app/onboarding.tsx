@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Animated, Platform, Alert
+  Animated, Platform, Alert, PanResponder
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -41,6 +41,104 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
   monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
   friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
 };
+
+const THUMB = 28;
+
+function FrequencySlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthRef = useRef(0);
+  const currentValueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const thumbAnim = useRef(new Animated.Value(0)).current;
+  const startThumbX = useRef(0);
+
+  useEffect(() => { trackWidthRef.current = trackWidth; }, [trackWidth]);
+
+  useEffect(() => {
+    currentValueRef.current = value;
+    if (trackWidthRef.current > THUMB) {
+      const pos = ((value - 1) / 6) * (trackWidthRef.current - THUMB);
+      Animated.spring(thumbAnim, { toValue: pos, useNativeDriver: false, tension: 180, friction: 9 }).start();
+    }
+  }, [value, trackWidth]);
+
+  const clampPos = (x: number) => Math.max(0, Math.min(trackWidthRef.current - THUMB, x));
+  const posToVal = (x: number) => Math.max(1, Math.min(7, Math.round((x / (trackWidthRef.current - THUMB)) * 6) + 1));
+
+  const applyPosition = (x: number) => {
+    const clamped = clampPos(x);
+    thumbAnim.setValue(clamped);
+    const newVal = posToVal(clamped);
+    if (newVal !== currentValueRef.current) {
+      currentValueRef.current = newVal;
+      onChangeRef.current(newVal);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const touchX = e.nativeEvent.locationX;
+        const newX = clampPos(touchX - THUMB / 2);
+        startThumbX.current = newX;
+        applyPosition(newX);
+      },
+      onPanResponderMove: (_, gs) => {
+        applyPosition(startThumbX.current + gs.dx);
+      },
+      onPanResponderRelease: () => {
+        const tw = trackWidthRef.current;
+        if (tw > THUMB) {
+          const pos = ((currentValueRef.current - 1) / 6) * (tw - THUMB);
+          Animated.spring(thumbAnim, { toValue: pos, useNativeDriver: false, tension: 220, friction: 11 }).start();
+        }
+      },
+    })
+  ).current;
+
+  const fillWidth = Animated.add(thumbAnim, THUMB / 2);
+
+  return (
+    <View style={sliderStyles.wrapper}>
+      <View
+        style={sliderStyles.hitArea}
+        onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
+        {...panResponder.panHandlers}
+      >
+        <View style={sliderStyles.trackBg} />
+        {trackWidth > 0 && (
+          <Animated.View style={[sliderStyles.trackFill, { width: fillWidth }]} />
+        )}
+        {trackWidth > 0 && (
+          <Animated.View style={[sliderStyles.thumb, { transform: [{ translateX: thumbAnim }] }]} />
+        )}
+      </View>
+      <View style={sliderStyles.labelsRow}>
+        {[1, 2, 3, 4, 5, 6, 7].map(n => (
+          <Text key={n} style={[sliderStyles.tickLabel, value === n && { color: c.neonCyan, fontFamily: 'Inter_700Bold' }]}>{n}</Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const sliderStyles = StyleSheet.create({
+  wrapper: { gap: 10, paddingVertical: 8 },
+  hitArea: { height: 48, justifyContent: 'center' },
+  trackBg: { position: 'absolute', left: 0, right: 0, top: 21, height: 6, borderRadius: 3, backgroundColor: c.secondary },
+  trackFill: { position: 'absolute', left: 0, top: 21, height: 6, borderRadius: 3, backgroundColor: c.neonCyan },
+  thumb: {
+    position: 'absolute', top: 10, width: THUMB, height: THUMB, borderRadius: THUMB / 2,
+    backgroundColor: c.neonCyan,
+    shadowColor: c.neonCyan, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 8, elevation: 8,
+  },
+  labelsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: THUMB / 2 },
+  tickLabel: { fontFamily: 'Inter_500Medium', fontSize: 14, color: c.mutedForeground, textAlign: 'center', width: 20 },
+});
 
 function OptionCard({ label, selected, onPress, subtitle }: { label: string; selected: boolean; onPress: () => void; subtitle?: string }) {
   return (
@@ -326,15 +424,10 @@ export default function OnboardingScreen() {
             <Text style={styles.freqNumber}>{p.workoutsPerWeek}</Text>
             <Text style={styles.freqLabel}>days / week</Text>
           </View>
-          <View style={styles.freqButtons}>
-            {[1, 2, 3, 4, 5, 6, 7].map(n => (
-              <TouchableOpacity key={n}
-                style={[styles.freqBtn, { borderColor: p.workoutsPerWeek === n ? c.neonCyan : c.border, backgroundColor: p.workoutsPerWeek === n ? c.neonCyan + '20' : c.card }]}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setP(prev => ({ ...prev, workoutsPerWeek: n, workoutDays: prev.workoutDays.slice(0, n) })); }}>
-                <Text style={[styles.freqBtnText, { color: p.workoutsPerWeek === n ? c.neonCyan : c.mutedForeground }]}>{n}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <FrequencySlider
+            value={p.workoutsPerWeek}
+            onChange={n => setP(prev => ({ ...prev, workoutsPerWeek: n, workoutDays: prev.workoutDays.slice(0, n) }))}
+          />
           <Text style={[styles.freqHint, { color: c.mutedForeground }]}>
             {p.workoutsPerWeek <= 3 ? 'Full Body split recommended' : p.workoutsPerWeek <= 5 ? 'Upper/Lower split recommended' : 'Push/Pull/Legs split recommended'}
           </Text>
@@ -486,9 +579,6 @@ const styles = StyleSheet.create({
   freqDisplay: { alignItems: 'center', paddingVertical: 20, gap: 4 },
   freqNumber: { fontFamily: 'Inter_700Bold', fontSize: 72, color: c.neonCyan },
   freqLabel: { fontFamily: 'Inter_400Regular', fontSize: 16, color: c.mutedForeground },
-  freqButtons: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
-  freqBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  freqBtnText: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   freqHint: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 13 },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   dayBtn: { width: 72, height: 48, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
