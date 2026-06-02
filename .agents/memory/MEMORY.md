@@ -1,0 +1,3 @@
+- [Expo Web Animation](expo-web-animation.md) — useNativeDriver: true breaks web; always use false for cross-platform Expo apps
+- [Expo Tab Hidden Screens](expo-tab-hidden-screens.md) — screens inside (tabs)/ that shouldn't show in tab bar need href: null in Tabs.Screen options
+- [colors.ts light key](expo-colors-light.md) — this project has no colors.light; useColors hook must return colors.dark directly

@@ -1,0 +1,409 @@
+Build a mobile-first fitness tracking web app that can later be converted into an APK using Capacitor or Expo WebView.
+
+App name: AriseForge
+
+IMPORTANT:
+Do not rely on knowing any specific fitness app.
+Use the uploaded reference screenshots only as visual inspiration.
+
+Visual direction:
+Create a dark premium gamified fitness UI.
+The design should feel like a futuristic personal training system / RPG training dashboard.
+
+UI style:
+- Very dark black/deep green background
+- Neon cyan icons and accents
+- Large rounded rectangular cards
+- Thin subtle borders
+- Layered/stacked card effect
+- Slight card depth and rotation
+- Clean white headings
+- Muted gray body text
+- Smooth animations
+- Interactive onboarding
+- Premium minimal fitness-tech feeling
+- Mobile-first responsive layout
+
+Avoid:
+- Generic gym app design
+- Bright colorful fitness UI
+- Cartoon style
+- Cluttered dashboard
+- Basic template look
+
+Tech stack:
+Use Replit-friendly stack:
+- React
+- TypeScript
+- Tailwind CSS
+- Node/Express backend if needed
+- PostgreSQL database if available
+- Use localStorage as fallback if database/auth setup is not available yet
+
+Main features:
+1. Exercise Guide
+2. Nutrition Plan
+3. Custom Workouts
+4. Workout Generator
+5. Smart Tracking
+6. Achievements
+7. History
+8. Charts
+9. Reminder System
+10. Saveable user progress
+
+Progress saving:
+- Save onboarding answers
+- Save generated workout plan
+- Save completed workouts
+- Save exercise history
+- Save achievements
+- Save body weight progress
+- Save reminder settings
+- If database is available, store everything in database
+- If not, use localStorage first but structure the code so database sync can be added later
+
+Create this app with these pages:
+1. Landing Page
+2. Onboarding Flow
+3. Plan Generation Loading Screen
+4. Transition Screen
+5. Home Dashboard
+6. Workout Page
+7. Exercise Guide Page
+8. Nutrition Page
+9. Progress / Charts Page
+10. Achievements Page
+11. History Page
+12. Settings Page
+
+Landing Page:
+Create stacked premium dark cards similar to the uploaded screenshots.
+Show feature cards:
+- Custom Workouts
+- Exercise Guide
+- Nutrition Plan
+- Workout Generator
+- Smart Tracking
+- Achievements
+- History
+- Charts
+
+Add button:
+“Start Training”
+
+Onboarding Flow:
+Create step-by-step onboarding with progress indicator.
+
+Question 1:
+Gender
+Options:
+- Male
+- Female
+- Other
+
+Question 2:
+Goal
+Options:
+- Build Muscle
+- Lose Weight
+- Look Better
+- Stay In Shape
+
+Question 3:
+Workout Motivation
+Multi-select:
+- Health
+- Weight Loss
+- Appearance
+- Stress Relief
+- Social Support
+- Enjoyment
+
+Question 4:
+Focus Areas
+Multi-select:
+- Full Body
+- Chest
+- Back
+- Arms
+- Shoulders
+- Abs
+- Legs
+- Glutes
+
+Logic:
+If Full Body is selected, automatically select:
+Chest, Back, Arms, Shoulders, Abs, Legs, Glutes.
+If the user deselects one body part, Full Body should automatically be deselected.
+
+Question 5:
+Fitness Level
+Options:
+- Beginner: New or tried it for a bit
+- Intermediate: Lifted weights before
+- Advanced: Been lifting for a while
+
+Question 6:
+Activity Level
+Options:
+- Sedentary: Little to no exercise
+- Lightly Active: Light exercise, 1-3 days a week
+- Moderately Active: Moderate exercises, 4-6 days a week
+- Very Active: Hard exercises every day
+
+Question 7:
+Age
+Number input
+
+Question 8:
+Height
+Number input in cm
+
+Question 9:
+Weight
+Number input in kg
+
+Question 10:
+Target Weight
+Number input in kg
+
+Question 11:
+Health Issues
+Multi-select:
+- None
+- Knee
+- Hip Joints
+- Back or Hernia
+- Arms and Shoulders
+- Can't Do Jumps
+
+Logic:
+If None is selected, all other health issue options must be grayed out and disabled.
+If any other health issue is selected, None must be deselected.
+
+Question 12:
+Access to Equipment
+Multi-select:
+- None / Bodyweight
+- Full Gym
+- Barbells
+- Dumbbells
+- Kettlebells
+- Machines
+
+Logic:
+If Full Gym is selected, automatically select:
+Barbells, Dumbbells, Kettlebells, Machines.
+Full Gym should NOT select None / Bodyweight.
+If None / Bodyweight is selected, other equipment options should be deselected.
+
+Question 13:
+How often do you want to workout?
+Use a slider from 1 to 7 workouts per week.
+
+Question 14:
+Workout Days Selection
+Multi-select days:
+- Monday
+- Tuesday
+- Wednesday
+- Thursday
+- Friday
+- Saturday
+- Sunday
+
+Logic:
+The user can only select up to the number chosen in “How often do you want to workout?”
+Example:
+If slider is 4, user can only select 4 days.
+If they select more, show a toast warning.
+
+Question 15:
+Reminder Feature
+For selected workout days, allow user to set reminder time.
+Save reminder settings.
+Use browser notification if possible.
+If not possible, create reminder UI only and save the selected time.
+
+Question 16:
+Summary Preview
+Show a polished summary card before generating the plan.
+Include:
+- Goal
+- Fitness level
+- Focus areas
+- Equipment
+- Workout frequency
+- Workout days
+- Health limitations
+- Current weight
+- Target weight
+
+Plan Generation Loading Screen:
+After summary, show an animated loading screen with:
+- Glowing progress ring
+- Animated gradient background
+- Text changing every few seconds:
+  “Analyzing your profile…”
+  “Balancing recovery and intensity…”
+  “Generating your custom workout split…”
+  “Preparing your fitness journey…”
+
+Transition Screen:
+After loading, show:
+- “Your training plan is ready”
+- Animated card reveal
+- Button: “Enter Dashboard”
+Then go to Home Dashboard.
+
+Workout Generator Logic:
+Generate a workout plan based on:
+- Goal
+- Fitness level
+- Focus areas
+- Equipment
+- Health issues
+- Workout frequency
+- Workout days
+
+Rules:
+- Beginner should get simpler workouts, lower volume, safer exercises.
+- Intermediate should get moderate volume.
+- Advanced should get higher volume.
+- If user has knee issue, avoid jump-heavy and high-knee-stress exercises.
+- If user has back or hernia issue, avoid heavy deadlift-style exercises.
+- If user can't do jumps, avoid jumping exercises.
+- If equipment is None / Bodyweight, only generate bodyweight exercises.
+- If user has dumbbells, include dumbbell exercises.
+- If user has barbells, include barbell exercises.
+- If user has kettlebells, include kettlebell exercises.
+- If user has machines, include machine exercises.
+- If Full Gym is selected, use mixed gym exercises.
+
+Home Dashboard:
+Sections:
+- Today’s Workout
+- Weekly Progress
+- Current Streak
+- Current Goal
+- Calories Estimate
+- Next Muscle Group to Train
+- Quick Start Workout
+- Achievements Preview
+- Recent History
+
+Workout Page:
+Show today’s workout.
+Each exercise card should include:
+- Exercise name
+- Target muscle
+- Equipment
+- Sets
+- Reps
+- Rest time
+- Checkbox complete
+- Input for actual reps
+- Input for actual weight
+- Notes field
+
+Add button:
+“Complete Workout”
+
+When workout is completed:
+- Save workout to history
+- Update streak
+- Update achievements
+- Update charts/progress
+- Return to dashboard
+
+Exercise Guide:
+Each exercise should include:
+- Exercise name
+- Target muscle
+- Equipment needed
+- Difficulty
+- Sets
+- Reps
+- Rest time
+- Instructions
+- Common mistakes
+- Safety notes
+
+Nutrition Plan:
+Generate basic nutrition recommendation based on goal:
+- Build Muscle: calorie surplus, high protein
+- Lose Weight: calorie deficit, high protein
+- Look Better: balanced body recomposition
+- Stay In Shape: maintenance calories
+
+Nutrition page should include:
+- Estimated daily calories
+- Protein goal
+- Carbs goal
+- Fat goal
+- Meal suggestions
+- Hydration reminder
+
+Smart Tracking:
+Allow users to track:
+- Exercise completed
+- Sets
+- Reps
+- Weight used
+- Duration
+- Notes
+- Body weight progress
+- Weekly workout completion
+
+Achievements:
+Add gamified badges:
+- First Workout
+- 3 Day Streak
+- 7 Day Streak
+- Consistency Beast
+- Chest Day Complete
+- Leg Day Survivor
+- New Personal Record
+- Weight Goal Progress
+- No Skip Week
+
+History:
+Show completed workouts by date.
+Each history item should include:
+- Workout name
+- Duration
+- Exercises completed
+- Volume lifted
+- Notes
+
+Charts:
+Create simple progress charts for:
+- Weekly workout completion
+- Body weight progress
+- Total workout volume
+- Streak progress
+- Muscle group frequency
+
+Settings:
+Allow user to:
+- Edit profile
+- Edit workout days
+- Edit reminder time
+- Reset onboarding
+- Reset all progress
+- Export progress as JSON
+
+Important implementation requirements:
+- Use reusable components
+- Keep code clean and scalable
+- Add loading states
+- Add empty states
+- Add error states
+- Use realistic sample exercises
+- Make the app usable even without backend first
+- Prioritize beautiful mobile UI
+- Make all buttons functional
+- Do not leave placeholder pages
+- Do not make it a simple static mockup
+- Build actual working logic for onboarding, plan generation, workout completion, history, achievements, and saved progress

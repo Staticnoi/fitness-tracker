@@ -1,0 +1,37 @@
+const colors = {
+  dark: {
+    text: "#f0f4f8",
+    tint: "#00e5ff",
+    background: "#040d0f",
+    foreground: "#f0f4f8",
+    card: "#0a1520",
+    cardForeground: "#e8edf3",
+    primary: "#00e5ff",
+    primaryForeground: "#000000",
+    secondary: "#0d1e2d",
+    secondaryForeground: "#b8c8d4",
+    muted: "#0d1e2d",
+    mutedForeground: "#6b8090",
+    accent: "#00e5ff",
+    accentForeground: "#000000",
+    destructive: "#ff4455",
+    destructiveForeground: "#ffffff",
+    border: "#1a2d3d",
+    input: "#1a2d3d",
+    // AriseForge extras
+    neonCyan: "#00e5ff",
+    neonGlow: "rgba(0,229,255,0.12)",
+    neonGlowStrong: "rgba(0,229,255,0.25)",
+    cardBorder: "#1e3245",
+    darkCard: "#060f17",
+    deepCard: "#020810",
+    success: "#00ff7f",
+    successGlow: "rgba(0,255,127,0.15)",
+    warning: "#ffb800",
+    warningGlow: "rgba(255,184,0,0.15)",
+    gold: "#ffd700",
+  },
+  radius: 14,
+};
+
+export default colors;
