@@ -64,6 +64,14 @@ export const DEFAULT_ACHIEVEMENTS: Achievement[] = [
     unlocked: false,
   },
   {
+    id: 'new_pr',
+    name: 'New PR',
+    description: 'Exceed a previous best exercise volume',
+    icon: 'trending-up',
+    color: '#00ff7f',
+    unlocked: false,
+  },
+  {
     id: 'weight_progress',
     name: 'Weight Goal Progress',
     description: 'Log 5 body weight entries',

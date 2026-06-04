@@ -9,7 +9,7 @@ function getFilteredExercises(profile: UserProfile): Exercise[] {
   return EXERCISES.filter(ex => {
     const hasEquip = ex.equipment.some(e =>
       profile.equipment.includes(e) ||
-      (profile.equipment.includes('full_gym') && e !== 'none_bodyweight')
+      profile.equipment.includes('full_gym')
     );
     const notAvoided = !ex.avoidFor?.some(h => profile.healthIssues.includes(h));
     return hasEquip && notAvoided;
@@ -34,7 +34,13 @@ function pickExercisesForMuscles(
   });
 
   const shuffled = [...filtered].sort(() => Math.random() - 0.5);
-  const picked = shuffled.slice(0, count);
+  let picked = shuffled.slice(0, count);
+  if (profile.equipment.includes('full_gym')) {
+    const bodyweight = shuffled.find(ex => ex.equipment.includes('none_bodyweight'));
+    const gym = shuffled.find(ex => !ex.equipment.includes('none_bodyweight'));
+    const required = [bodyweight, gym].filter((exercise): exercise is Exercise => Boolean(exercise));
+    picked = [...required, ...shuffled.filter(exercise => !required.some(item => item.id === exercise.id))].slice(0, count);
+  }
 
   const setsMap: Record<string, number> = { beginner: 3, intermediate: 4, advanced: 4 };
   const baseSets = setsMap[profile.fitnessLevel] ?? 3;

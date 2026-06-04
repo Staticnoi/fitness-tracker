@@ -1,270 +1,132 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import React from 'react';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import colors from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
-import StatCard from '@/components/StatCard';
+import { dateKey } from '@/utils/progression';
+import { RankBadge, SystemAlert, SystemPanel, XpBar } from '@/components/SystemUI';
 import AchievementBadge from '@/components/AchievementBadge';
-import NeonButton from '@/components/NeonButton';
-import { getTodaysWorkout, getNextWorkout } from '@/utils/workoutGenerator';
+import { getNextWorkout } from '@/utils/workoutGenerator';
 
 const c = colors.dark;
 
-export default function HomeScreen() {
+export default function CommandCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { state, addBodyWeight } = useApp();
-  const [weightModal, setWeightModal] = useState(false);
-  const [weightInput, setWeightInput] = useState('');
-
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
-  const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
-
-  const profile = state.userProfile;
-  const plan = state.workoutPlan;
-  const todayWorkout = plan ? getTodaysWorkout(plan) : null;
-  const nextWorkout = plan ? getNextWorkout(plan) : null;
-  const totalWorkouts = state.completedWorkouts.length;
-  const thisWeek = state.completedWorkouts.filter(w => {
-    const d = new Date(w.date);
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return d >= weekAgo;
-  }).length;
-
-  const goalLabel: Record<string, string> = {
-    build_muscle: 'Build Muscle', lose_weight: 'Lose Weight',
-    look_better: 'Look Better', stay_in_shape: 'Stay In Shape',
-  };
-
-  const nutrition = state.nutritionPlan;
-  const lastWeight = state.bodyWeightHistory[state.bodyWeightHistory.length - 1]?.weight ?? profile?.weight;
-
-  const logWeight = () => {
-    const w = parseFloat(weightInput);
-    if (!w || w < 20 || w > 300) { Alert.alert('Invalid weight', 'Enter a valid weight in kg.'); return; }
-    addBodyWeight({ date: Date.now(), weight: w });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setWeightModal(false);
-    setWeightInput('');
-  };
+  const { state } = useApp();
+  const today = dateKey();
+  const quest = state.dailyQuests.find(item => item.dateKey === today);
+  const recovery = state.recoveryChain?.status === 'active' ? state.recoveryChain : null;
+  const nextRecovery = recovery?.objectives.find(item => item.status === 'active' && item.dueDateKey <= today);
+  const open = (dayId: string) => router.push({ pathname: '/active-workout', params: { dayId } });
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weeklyCompleted = state.completedWorkouts.filter(item => item.date >= weekStart.getTime()).length;
+  const nextWorkout = state.workoutPlan ? getNextWorkout(state.workoutPlan) : null;
+  const recent = [...state.completedWorkouts].sort((a, b) => b.date - a.date).slice(0, 2);
 
   return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 80 }]} showsVerticalScrollIndicator={false}>
-
-        {/* Header */}
+    <View style={[styles.container, { paddingTop: Platform.OS === 'web' ? 67 : insets.top }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === 'web' ? 34 : insets.bottom) + 90 }]}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}</Text>
-            <Text style={styles.title}>AriseForge</Text>
+          <View><Text style={styles.eyebrow}>ARISEFORGE // COMMAND CENTER</Text><Text style={styles.title}>PLAYER STATUS</Text></View>
+          <RankBadge rank={state.progression.rank} />
+        </View>
+        <SystemPanel active style={styles.gap}>
+          <View style={styles.playerRow}>
+            <View><Text style={styles.micro}>REGISTERED PLAYER</Text><Text style={styles.goal}>{state.userProfile?.goal.replaceAll('_', ' ').toUpperCase()}</Text></View>
+            <View style={styles.streak}><Text style={styles.streakValue}>{state.currentStreak}</Text><Text style={styles.micro}>STREAK</Text></View>
           </View>
-          <View style={[styles.goalChip, { backgroundColor: c.neonCyan + '15', borderColor: c.neonCyan + '40' }]}>
-            <Feather name="target" size={12} color={c.neonCyan} />
-            <Text style={styles.goalText}>{goalLabel[profile?.goal ?? ''] ?? 'Set Goal'}</Text>
-          </View>
+          <XpBar xp={state.progression.xp} level={state.progression.level} />
+        </SystemPanel>
+
+        <Text style={styles.section}>DAILY QUEST</Text>
+        {quest ? (
+          <TouchableOpacity disabled={quest.status !== 'active'} onPress={() => open(quest.workoutDayId)}>
+            <SystemPanel active={quest.status === 'active'} style={styles.gap}>
+              <View style={styles.questRow}>
+                <Feather name={quest.status === 'completed' ? 'check-circle' : 'crosshair'} size={24} color={quest.status === 'completed' ? c.success : c.neonCyan} />
+                <View style={{ flex: 1 }}><Text style={styles.micro}>{quest.status.toUpperCase()}</Text><Text style={styles.questTitle}>{quest.title}</Text></View>
+                <Text style={styles.reward}>+{quest.xpReward} XP</Text>
+              </View>
+              <Text style={styles.meta}>VERIFY ALL {quest.prescribedSets} PRESCRIBED SETS</Text>
+            </SystemPanel>
+          </TouchableOpacity>
+        ) : <SystemPanel><Text style={styles.meta}>NO QUEST ASSIGNED // RECOVERY DAY</Text></SystemPanel>}
+
+        {nextRecovery && <>
+          <Text style={[styles.section, { color: c.destructive }]}>RECOVERY PROTOCOL</Text>
+          <TouchableOpacity onPress={() => open(nextRecovery.workout.id)}>
+            <SystemPanel style={[styles.gap, { borderColor: c.destructive }]}>
+              <Text style={[styles.micro, { color: c.destructive }]}>MANDATORY CHAIN // {recovery?.objectives.filter(item => item.status === 'completed').length}/3</Text>
+              <Text style={styles.questTitle}>{nextRecovery.workout.name}</Text>
+              <Text style={styles.meta}>INCREASED WORKLOAD // HEALTH RESTRICTIONS ACTIVE</Text>
+            </SystemPanel>
+          </TouchableOpacity>
+        </>}
+
+        <Text style={styles.section}>SYSTEM METRICS</Text>
+        <View style={styles.metrics}>
+          {[
+            ['WEEKLY', `${weeklyCompleted}/${state.userProfile?.workoutsPerWeek ?? 0}`],
+            ['CALORIES', `${state.nutritionPlan?.calories ?? 0}`],
+            ['NEXT TARGET', nextWorkout?.exercises[0]?.exercise.targetMuscle.replaceAll('_', ' ').toUpperCase() ?? 'RECOVERY'],
+          ].map(([label, value]) => <SystemPanel key={label} style={styles.metric}><Text style={styles.micro}>{label}</Text><Text style={styles.metricValue} numberOfLines={1}>{value}</Text></SystemPanel>)}
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <StatCard icon="zap" value={String(state.currentStreak)} label="Day Streak" accent={c.neonCyan} />
-          <StatCard icon="check-circle" value={String(totalWorkouts)} label="Workouts" accent={c.success} />
-          <StatCard icon="calendar" value={String(thisWeek)} label="This Week" accent={c.warning} />
+        <Text style={styles.section}>QUICK START</Text>
+        <View style={styles.actions}>
+          {quest?.status === 'active' && <TouchableOpacity style={styles.action} onPress={() => open(quest.workoutDayId)}><Feather name="play" size={17} color={c.success} /><Text style={styles.actionText}>START QUEST</Text></TouchableOpacity>}
+          {[
+            ['book-open', 'EXERCISES', '/(tabs)/exercises'],
+            ['pie-chart', 'NUTRITION', '/(tabs)/nutrition'],
+            ['clock', 'HISTORY', '/(tabs)/history'],
+          ].map(([icon, label, route]) => <TouchableOpacity key={label} style={styles.action} onPress={() => router.push(route as never)}><Feather name={icon as never} size={17} color={c.neonCyan} /><Text style={styles.actionText}>{label}</Text></TouchableOpacity>)}
         </View>
 
-        {/* Today's Workout */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>TODAY'S WORKOUT</Text>
-          {todayWorkout ? (
-            <TouchableOpacity
-              style={[styles.workoutCard, { backgroundColor: c.card, borderColor: c.neonCyan + '60' }]}
-              onPress={() => router.push({ pathname: '/active-workout', params: { dayId: todayWorkout.id } })}
-              activeOpacity={0.85}
-            >
-              <View style={styles.workoutCardTop}>
-                <View>
-                  <Text style={styles.workoutName}>{todayWorkout.name}</Text>
-                  <Text style={styles.workoutMeta}>{todayWorkout.exercises.length} exercises • {todayWorkout.splitLabel}</Text>
-                </View>
-                <View style={[styles.startBtn, { backgroundColor: c.neonCyan }]}>
-                  <Feather name="play" size={20} color="#000" />
-                </View>
-              </View>
-              <View style={styles.exercisePreview}>
-                {todayWorkout.exercises.slice(0, 3).map((ex, i) => (
-                  <View key={i} style={[styles.exerciseChip, { backgroundColor: c.secondary, borderColor: c.border }]}>
-                    <Text style={styles.exerciseChipText}>{ex.exercise.name}</Text>
-                  </View>
-                ))}
-                {todayWorkout.exercises.length > 3 && (
-                  <View style={[styles.exerciseChip, { backgroundColor: c.secondary }]}>
-                    <Text style={[styles.exerciseChipText, { color: c.neonCyan }]}>+{todayWorkout.exercises.length - 3} more</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.restCard, { backgroundColor: c.card, borderColor: c.border }]}>
-              <Feather name="moon" size={28} color={c.mutedForeground} />
-              <View>
-                <Text style={styles.restTitle}>Rest Day</Text>
-                <Text style={styles.restSub}>Recovery is part of the process</Text>
-              </View>
-              {nextWorkout && (
-                <Text style={[styles.nextWorkoutText, { color: c.neonCyan }]}>
-                  Next: {nextWorkout.name} on {nextWorkout.dayOfWeek.charAt(0).toUpperCase() + nextWorkout.dayOfWeek.slice(1)}
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
+        {state.achievements.some(item => item.unlocked) && <>
+          <Text style={styles.section}>RECENT RECORDS</Text>
+          <SystemPanel style={styles.recordRow}>{state.achievements.filter(item => item.unlocked).slice(-4).map(item => <AchievementBadge key={item.id} achievement={item} size="sm" />)}</SystemPanel>
+        </>}
 
-        {/* Nutrition Preview */}
-        {nutrition && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DAILY NUTRITION</Text>
-            <View style={[styles.nutritionCard, { backgroundColor: c.card, borderColor: c.border }]}>
-              <View style={styles.macroRow}>
-                {[
-                  { label: 'Calories', val: `${nutrition.calories}`, unit: 'kcal', color: c.neonCyan },
-                  { label: 'Protein', val: `${nutrition.protein}g`, unit: '', color: c.success },
-                  { label: 'Carbs', val: `${nutrition.carbs}g`, unit: '', color: c.warning },
-                  { label: 'Fat', val: `${nutrition.fat}g`, unit: '', color: '#e040fb' },
-                ].map(({ label, val, color }) => (
-                  <View key={label} style={styles.macroItem}>
-                    <Text style={[styles.macroVal, { color }]}>{val}</Text>
-                    <Text style={styles.macroLabel}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        )}
+        {recent.length > 0 && <>
+          <Text style={styles.section}>RECENT HISTORY</Text>
+          <SystemPanel>{recent.map(item => <View key={item.id} style={styles.historyRow}><View><Text style={styles.historyName}>{item.workoutName}</Text><Text style={styles.meta}>{new Date(item.date).toLocaleDateString()}</Text></View><Text style={styles.reward}>{item.duration} MIN</Text></View>)}</SystemPanel>
+        </>}
 
-        {/* Body Weight */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>BODY WEIGHT</Text>
-          <View style={[styles.weightCard, { backgroundColor: c.card, borderColor: c.border }]}>
-            <View style={styles.weightRow}>
-              <View>
-                <Text style={styles.weightVal}>{lastWeight?.toFixed(1) ?? '—'} <Text style={styles.weightUnit}>kg</Text></Text>
-                <Text style={styles.weightSub}>Current • Target: {profile?.targetWeight ?? '—'} kg</Text>
-              </View>
-              <TouchableOpacity style={[styles.logBtn, { borderColor: c.neonCyan, backgroundColor: c.neonCyan + '15' }]}
-                onPress={() => setWeightModal(true)}>
-                <Feather name="plus" size={16} color={c.neonCyan} />
-                <Text style={[styles.logBtnText, { color: c.neonCyan }]}>Log</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>EXPLORE</Text>
-          <View style={styles.quickGrid}>
-            {[
-              { icon: 'book-open', label: 'Exercises', route: '/(tabs)/exercises', color: c.neonCyan },
-              { icon: 'pie-chart', label: 'Nutrition', route: '/(tabs)/nutrition', color: c.warning },
-              { icon: 'clock', label: 'History', route: '/(tabs)/history', color: c.success },
-              { icon: 'bar-chart', label: 'Charts', route: '/(tabs)/progress', color: '#e040fb' },
-            ].map(({ icon, label, route, color }) => (
-              <TouchableOpacity key={label}
-                style={[styles.quickCard, { backgroundColor: c.card, borderColor: c.cardBorder }]}
-                onPress={() => router.push(route as any)} activeOpacity={0.8}>
-                <View style={[styles.quickIcon, { backgroundColor: color + '15' }]}>
-                  <Feather name={icon as any} size={20} color={color} />
-                </View>
-                <Text style={styles.quickLabel}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Recent Achievements */}
-        {state.achievements.some(a => a.unlocked) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>RECENT ACHIEVEMENTS</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achieveRow}>
-              {state.achievements.filter(a => a.unlocked).slice(-5).map(a => (
-                <AchievementBadge key={a.id} achievement={a} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
+        <Text style={styles.section}>SYSTEM LOG</Text>
+        <SystemPanel>{state.systemEvents.length ? state.systemEvents.slice(0, 5).map(item => <SystemAlert key={item.id} event={item} />) : <Text style={styles.meta}>NO RECENT SYSTEM EVENTS</Text>}</SystemPanel>
       </ScrollView>
-
-      {/* Weight Modal */}
-      <Modal visible={weightModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: c.card, borderColor: c.border }]}>
-            <Text style={styles.modalTitle}>Log Body Weight</Text>
-            <TextInput
-              style={[styles.modalInput, { borderColor: c.neonCyan, color: c.neonCyan }]}
-              keyboardType="numeric"
-              placeholder="kg"
-              placeholderTextColor={c.mutedForeground}
-              value={weightInput}
-              onChangeText={setWeightInput}
-              autoFocus
-            />
-            <View style={styles.modalButtons}>
-              <NeonButton title="Cancel" variant="ghost" onPress={() => setWeightModal(false)} style={{ flex: 1 }} />
-              <NeonButton title="Save" onPress={logWeight} style={{ flex: 1 }} />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
-  scroll: { paddingHorizontal: 20, gap: 0 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 20 },
-  greeting: { fontFamily: 'Inter_400Regular', fontSize: 13, color: c.mutedForeground },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 28, color: c.foreground, letterSpacing: -1 },
-  goalChip: { flexDirection: 'row', gap: 5, alignItems: 'center', borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
-  goalText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: c.neonCyan },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 11, color: c.mutedForeground, letterSpacing: 2, marginBottom: 12 },
-  workoutCard: { borderRadius: 18, borderWidth: 1.5, padding: 18, gap: 14 },
-  workoutCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  workoutName: { fontFamily: 'Inter_700Bold', fontSize: 20, color: c.foreground },
-  workoutMeta: { fontFamily: 'Inter_400Regular', fontSize: 13, color: c.mutedForeground, marginTop: 4 },
-  startBtn: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  exercisePreview: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  exerciseChip: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  exerciseChipText: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.foreground },
-  restCard: { borderRadius: 16, borderWidth: 1, padding: 20, gap: 12 },
-  restTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 18, color: c.foreground },
-  restSub: { fontFamily: 'Inter_400Regular', fontSize: 13, color: c.mutedForeground },
-  nextWorkoutText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
-  nutritionCard: { borderRadius: 16, borderWidth: 1, padding: 16 },
-  macroRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  macroItem: { alignItems: 'center', gap: 4 },
-  macroVal: { fontFamily: 'Inter_700Bold', fontSize: 20 },
-  macroLabel: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.mutedForeground },
-  weightCard: { borderRadius: 16, borderWidth: 1, padding: 16 },
-  weightRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  weightVal: { fontFamily: 'Inter_700Bold', fontSize: 32, color: c.foreground },
-  weightUnit: { fontSize: 18, color: c.mutedForeground },
-  weightSub: { fontFamily: 'Inter_400Regular', fontSize: 13, color: c.mutedForeground, marginTop: 4 },
-  logBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
-  logBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  quickCard: { width: '47%', borderRadius: 14, borderWidth: 1, padding: 16, gap: 10 },
-  quickIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  quickLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: c.foreground },
-  achieveRow: { paddingBottom: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
-  modalCard: { width: 300, borderRadius: 20, borderWidth: 1, padding: 24, gap: 16 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, color: c.foreground, textAlign: 'center' },
-  modalInput: { fontSize: 40, fontFamily: 'Inter_700Bold', textAlign: 'center', borderBottomWidth: 2, paddingVertical: 8 },
-  modalButtons: { flexDirection: 'row', gap: 10 },
+  scroll: { paddingHorizontal: 18, gap: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 22, paddingRight: 10 },
+  eyebrow: { color: c.neonCyan, fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.7 },
+  title: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: 2, marginTop: 5 },
+  gap: { gap: 16 },
+  playerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  micro: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
+  goal: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 5 },
+  streak: { alignItems: 'center', paddingLeft: 18, borderLeftWidth: 1, borderLeftColor: c.border },
+  streakValue: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 25 },
+  section: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2, marginTop: 10 },
+  questRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  questTitle: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 18, marginTop: 3 },
+  reward: { color: c.gold, fontFamily: 'Inter_700Bold', fontSize: 12 },
+  meta: { color: c.mutedForeground, fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1 },
+  metrics: { flexDirection: 'row', gap: 7 },
+  metric: { flex: 1, padding: 10, gap: 5 },
+  metricValue: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 14 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  action: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.cardBorder, padding: 13 },
+  actionText: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.8 },
+  recordRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  historyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: c.border },
+  historyName: { color: c.foreground, fontFamily: 'Inter_600SemiBold', fontSize: 13 },
 });

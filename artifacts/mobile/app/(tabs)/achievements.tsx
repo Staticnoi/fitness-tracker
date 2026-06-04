@@ -21,7 +21,7 @@ export default function AchievementsScreen() {
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.pageTitle}>Achievements</Text>
+          <Text style={styles.pageTitle}>Records</Text>
           <View style={[styles.countBadge, { backgroundColor: c.gold + '20', borderColor: c.gold + '50' }]}>
             <Feather name="award" size={14} color={c.gold} />
             <Text style={[styles.countText, { color: c.gold }]}>{unlocked.length}/{state.achievements.length}</Text>
@@ -31,7 +31,7 @@ export default function AchievementsScreen() {
         {/* Unlocked */}
         {unlocked.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>UNLOCKED</Text>
+            <Text style={styles.sectionTitle}>UNLOCKED RECORDS</Text>
             <View style={styles.grid}>
               {unlocked.map(a => (
                 <View key={a.id} style={[styles.achieveCard, { backgroundColor: c.card, borderColor: a.color + '40' }]}>
@@ -50,7 +50,7 @@ export default function AchievementsScreen() {
         {/* Locked */}
         {locked.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>IN PROGRESS</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>LOCKED RECORDS</Text>
             <View style={styles.grid}>
               {locked.map(a => (
                 <View key={a.id} style={[styles.achieveCard, { backgroundColor: c.card, borderColor: c.border }]}>

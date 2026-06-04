@@ -11,12 +11,12 @@ const { width } = Dimensions.get('window');
 const c = colors.dark;
 
 const FEATURES = [
-  { icon: 'zap', title: 'Custom Workouts', desc: 'Tailored to your goals, level, and equipment', color: '#00e5ff' },
+  { icon: 'zap', title: 'Daily Quests', desc: 'Scheduled training objectives assigned to your profile', color: '#00e5ff' },
   { icon: 'book-open', title: 'Exercise Guide', desc: '30+ exercises with form cues and tips', color: '#00ff7f' },
   { icon: 'pie-chart', title: 'Nutrition Plan', desc: 'Personalized macros and meal suggestions', color: '#ffb800' },
   { icon: 'cpu', title: 'Workout Generator', desc: 'AI-powered plans based on your profile', color: '#e040fb' },
   { icon: 'activity', title: 'Smart Tracking', desc: 'Sets, reps, weight, and body progress', color: '#ff6b35' },
-  { icon: 'award', title: 'Achievements', desc: 'Earn badges and level up your training', color: '#ffd700' },
+  { icon: 'award', title: 'System Records', desc: 'Earn XP, unlock records, and advance your rank', color: '#ffd700' },
   { icon: 'clock', title: 'History', desc: 'Every workout logged and visualized', color: '#00e5ff' },
   { icon: 'bar-chart-2', title: 'Charts', desc: 'Progress graphs that motivate you to push', color: '#00ff7f' },
 ];
@@ -69,14 +69,14 @@ export default function LandingScreen() {
         <Animated.View style={[styles.hero, { opacity: heroFade, transform: [{ translateY: heroSlide }] }]}>
           <View style={styles.badge}>
             <Feather name="zap" size={12} color={c.neonCyan} />
-            <Text style={styles.badgeText}>PREMIUM FITNESS SYSTEM</Text>
+            <Text style={styles.badgeText}>PLAYER REGISTRATION AVAILABLE</Text>
           </View>
           <Text style={styles.heroTitle}>
             <Text style={{ color: c.neonCyan }}>ARISE</Text>
             {'\n'}FORGE
           </Text>
           <Text style={styles.heroSub}>
-            Your personal training system. Gamified. Intelligent. Built for results.
+            Enter a progression-driven training protocol built around quests, ranks, and measurable growth.
           </Text>
           <View style={styles.statsRow}>
             {[['12', 'Splits'], ['50+', 'Exercises'], ['∞', 'Progress']].map(([val, lbl]) => (
@@ -100,7 +100,7 @@ export default function LandingScreen() {
       {/* CTA */}
       <View style={[styles.cta, { paddingBottom: bottomPad + 16 }]}>
         <NeonButton
-          title="Start Training"
+          title="BEGIN REGISTRATION"
           size="lg"
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   statLbl: { fontSize: 12, fontFamily: 'Inter_400Regular', color: c.mutedForeground },
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, color: c.mutedForeground, letterSpacing: 2, marginBottom: 12, marginTop: 8 },
   featuresGrid: { gap: 10 },
-  featureCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.cardBorder, borderRadius: 14, padding: 16 },
+  featureCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.cardBorder, borderRadius: 3, padding: 16 },
   featureIcon: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   featureText: { flex: 1, gap: 3 },
   featureTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: c.foreground },

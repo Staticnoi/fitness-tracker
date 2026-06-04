@@ -40,14 +40,14 @@ export default function WorkoutScreen() {
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.pageTitle}>Your Plan</Text>
+          <Text style={styles.pageTitle}>Quest Registry</Text>
           <View style={[styles.splitBadge, { backgroundColor: c.neonCyan + '15', borderColor: c.neonCyan + '40' }]}>
             <Text style={styles.splitText}>{plan.split}</Text>
           </View>
         </View>
 
         {/* Today's Workout */}
-        <Text style={styles.sectionTitle}>TODAY</Text>
+        <Text style={styles.sectionTitle}>ACTIVE DAILY QUEST</Text>
         {today ? (
           <View style={[styles.todayCard, { borderColor: c.neonCyan + '50' }]}>
             <View style={styles.todayHeader}>
@@ -55,7 +55,7 @@ export default function WorkoutScreen() {
                 <Text style={styles.todayName}>{today.name}</Text>
                 <Text style={styles.todayDay}>{DAY_LABELS[today.dayOfWeek]}</Text>
               </View>
-              <NeonButton title="Start" onPress={() => router.push({ pathname: '/active-workout', params: { dayId: today.id } })}
+              <NeonButton title="ACCEPT" onPress={() => router.push({ pathname: '/active-workout', params: { dayId: today.id } })}
                 style={styles.startBtn} />
             </View>
             <View style={styles.exList}>
@@ -85,7 +85,7 @@ export default function WorkoutScreen() {
         )}
 
         {/* Weekly Schedule */}
-        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>WEEKLY SCHEDULE</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>QUEST SCHEDULE</Text>
         <View style={styles.weekList}>
           {plan.days.map((d, i) => (
             <TouchableOpacity key={i}

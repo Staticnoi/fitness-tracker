@@ -212,6 +212,12 @@ export default function OnboardingScreen() {
       completeOnboarding(profile);
       router.replace('/generating');
     } else {
+      if (step === 13) {
+        setP(prev => ({
+          ...prev,
+          reminderSettings: prev.workoutDays.map(day => prev.reminderSettings.find(item => item.day === day) ?? { day, time: '07:00', enabled: true }),
+        }));
+      }
       setStep(s => s + 1);
     }
   };
@@ -227,7 +233,7 @@ export default function OnboardingScreen() {
     arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
 
   const setFocusAreas = (areas: MuscleGroup[]) => setP(prev => ({ ...prev, focusAreas: areas }));
-  const allBodyParts: MuscleGroup[] = ['chest', 'back', 'arms', 'shoulders', 'abs', 'legs', 'glutes'];
+  const allBodyParts: Exclude<MuscleGroup, 'full_body'>[] = ['chest', 'back', 'arms', 'shoulders', 'abs', 'legs', 'glutes'];
 
   const canNext = (): boolean => {
     if (step === 0) return !!p.gender;
@@ -249,8 +255,8 @@ export default function OnboardingScreen() {
       // Step 0: Gender
       case 0: return (
         <View style={styles.stepContent}>
-          <Text style={styles.stepTitle}>Your Gender</Text>
-          <Text style={styles.stepSub}>Helps us personalize your training</Text>
+          <Text style={styles.stepTitle}>Player Registration</Text>
+          <Text style={styles.stepSub}>Declare your profile to initialize the System</Text>
           {([['male', 'Male'], ['female', 'Female'], ['other', 'Other']] as [Gender, string][]).map(([val, label]) => (
             <OptionCard key={val} label={label} selected={p.gender === val}
               onPress={() => setP(prev => ({ ...prev, gender: val }))} />
@@ -498,7 +504,7 @@ export default function OnboardingScreen() {
           <View style={[styles.summaryCard, { backgroundColor: c.card, borderColor: c.neonCyan + '50' }]}>
             {[
               ['Goal', p.goal?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? '—'],
-              ['Fitness Level', p.fitnessLevel?.charAt(0).toUpperCase() + p.fitnessLevel!.slice(1) ?? '—'],
+              ['Fitness Level', p.fitnessLevel ? p.fitnessLevel.charAt(0).toUpperCase() + p.fitnessLevel.slice(1) : 'N/A'],
               ['Focus', p.focusAreas.includes('full_body') ? 'Full Body' : p.focusAreas.slice(0, 3).join(', ')],
               ['Equipment', p.equipment.includes('full_gym') ? 'Full Gym' : p.equipment.includes('none_bodyweight') ? 'Bodyweight' : p.equipment.join(', ')],
               ['Workouts', `${p.workoutsPerWeek}× per week`],
@@ -565,7 +571,7 @@ const styles = StyleSheet.create({
   stepContent: { gap: 14 },
   stepTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, color: c.foreground, letterSpacing: -0.5 },
   stepSub: { fontFamily: 'Inter_400Regular', fontSize: 15, color: c.mutedForeground, marginBottom: 4 },
-  optionCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, borderWidth: 1.5, gap: 12 },
+  optionCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 3, borderWidth: 1.5, gap: 12 },
   optionInner: { flex: 1 },
   optionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 16 },
   optionSub: { fontFamily: 'Inter_400Regular', fontSize: 13, marginTop: 2 },
@@ -581,12 +587,12 @@ const styles = StyleSheet.create({
   freqLabel: { fontFamily: 'Inter_400Regular', fontSize: 16, color: c.mutedForeground },
   freqHint: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 13 },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  dayBtn: { width: 72, height: 48, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  dayBtn: { width: 72, height: 48, borderRadius: 3, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   dayBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
-  reminderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: c.border },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: 3, padding: 16, borderWidth: 1, borderColor: c.border },
   reminderDay: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   timeInput: { fontFamily: 'Inter_600SemiBold', fontSize: 18, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, width: 80, textAlign: 'center' },
-  summaryCard: { borderWidth: 1.5, borderRadius: 16, padding: 18, gap: 12 },
+  summaryCard: { borderWidth: 1.5, borderRadius: 3, padding: 18, gap: 12 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   summaryLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   summaryValue: { fontFamily: 'Inter_600SemiBold', fontSize: 14, textAlign: 'right', flex: 1 },

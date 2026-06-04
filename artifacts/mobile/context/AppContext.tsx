@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
+import { AppState as NativeAppState } from 'react-native';
 import type { AppState, UserProfile, CompletedWorkout, BodyWeightEntry, WorkoutPlan } from '@/types';
 import { saveAppState, loadAppState, clearAppState } from '@/utils/storage';
 import { DEFAULT_ACHIEVEMENTS } from '@/constants/achievements';
 import { generateWorkoutPlan } from '@/utils/workoutGenerator';
 import { calculateNutrition } from '@/utils/nutrition';
+import { CURRENT_SCHEMA_VERSION, buildProgression, completeProgression, dateKey, questForDate, syncQuests } from '@/utils/progression';
 
 const INITIAL_STATE: AppState = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
   onboardingCompleted: false,
   userProfile: null,
   workoutPlan: null,
@@ -16,6 +19,12 @@ const INITIAL_STATE: AppState = {
   longestStreak: 0,
   lastWorkoutDate: null,
   nutritionPlan: null,
+  progression: buildProgression([], 0),
+  dailyQuests: [],
+  recoveryChain: null,
+  systemEvents: [],
+  lastQuestSyncDate: dateKey(),
+  firedReminderKeys: [],
 };
 
 type Action =
@@ -25,11 +34,12 @@ type Action =
   | { type: 'ADD_COMPLETED_WORKOUT'; payload: CompletedWorkout }
   | { type: 'ADD_BODY_WEIGHT'; payload: BodyWeightEntry }
   | { type: 'RESET_ALL' }
+  | { type: 'SYNC_QUESTS' }
   | { type: 'UPDATE_PROFILE'; payload: Partial<UserProfile> };
 
 function checkAndUnlockAchievements(state: AppState, newWorkout?: CompletedWorkout): AppState['achievements'] {
   const achievements = state.achievements.map(a => ({ ...a }));
-  const totalWorkouts = state.completedWorkouts.length + (newWorkout ? 1 : 0);
+  const totalWorkouts = state.completedWorkouts.length;
   const streak = state.currentStreak;
 
   const unlock = (id: string, progress?: number) => {
@@ -59,7 +69,29 @@ function checkAndUnlockAchievements(state: AppState, newWorkout?: CompletedWorko
     const lower = newWorkout.workoutName.toLowerCase();
     if (lower.includes('chest') || lower.includes('push')) unlock('chest_day');
     if (lower.includes('leg')) unlock('leg_day');
+
+    const previousBest = new Map<string, number>();
+    state.completedWorkouts.slice(0, -1).forEach(workout => workout.exercises.forEach(exercise => {
+      const volume = exercise.sets.reduce((sum, set) => sum + set.reps * (set.weight ?? 0), 0);
+      previousBest.set(exercise.name, Math.max(previousBest.get(exercise.name) ?? 0, volume));
+    }));
+    const hasPr = newWorkout.exercises.some(exercise => {
+      const volume = exercise.sets.reduce((sum, set) => sum + set.reps * (set.weight ?? 0), 0);
+      return volume > 0 && volume > (previousBest.get(exercise.name) ?? volume);
+    });
+    if (hasPr) unlock('new_pr');
   }
+
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const currentDayIndex = (now.getDay() + 6) % 7;
+  const plannedDayIndexes = state.workoutPlan?.days.map(day => dayOrder.indexOf(day.dayOfWeek)) ?? [];
+  const scheduledThisWeek = state.dailyQuests.filter(quest => new Date(`${quest.dateKey}T12:00:00`) >= monday && quest.dateKey <= dateKey());
+  const weekScheduleReached = plannedDayIndexes.length > 0 && Math.max(...plannedDayIndexes) <= currentDayIndex;
+  if (weekScheduleReached && scheduledThisWeek.filter(quest => quest.status === 'completed').length >= plannedDayIndexes.length) unlock('no_skip_week');
 
   const bwCount = state.bodyWeightHistory.length;
   unlock('weight_progress', Math.min(bwCount, 5));
@@ -68,25 +100,15 @@ function checkAndUnlockAchievements(state: AppState, newWorkout?: CompletedWorko
   return achievements;
 }
 
-function calculateStreak(completedWorkouts: CompletedWorkout[], newWorkout?: CompletedWorkout): { streak: number; longest: number } {
-  const allWorkouts = newWorkout ? [...completedWorkouts, newWorkout] : completedWorkouts;
-  if (!allWorkouts.length) return { streak: 0, longest: 0 };
-
-  const dates = [...new Set(allWorkouts.map(w => {
-    const d = new Date(w.date);
-    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-  }))].sort().reverse();
-
-  let streak = 1;
-  let longest = 1;
-  for (let i = 1; i < dates.length; i++) {
-    const prev = new Date(dates[i - 1]);
-    const curr = new Date(dates[i]);
-    const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
-    if (diff <= 1.5) { streak++; longest = Math.max(longest, streak); }
-    else { streak = 1; }
-  }
-  return { streak, longest };
+function calculateStreak(state: AppState, newWorkout: CompletedWorkout): { streak: number; longest: number } {
+  if (!state.lastWorkoutDate) return { streak: 1, longest: Math.max(1, state.longestStreak) };
+  const previous = new Date(state.lastWorkoutDate);
+  previous.setHours(12, 0, 0, 0);
+  const current = new Date(newWorkout.date);
+  current.setHours(12, 0, 0, 0);
+  const days = Math.round((current.getTime() - previous.getTime()) / (24 * 60 * 60 * 1000));
+  const streak = days === 0 ? Math.max(1, state.currentStreak) : days === 1 ? state.currentStreak + 1 : 1;
+  return { streak, longest: Math.max(state.longestStreak, streak) };
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -103,34 +125,80 @@ function reducer(state: AppState, action: Action): AppState {
         workoutPlan: plan,
         nutritionPlan: nutrition,
         bodyWeightHistory: [{ date: Date.now(), weight: action.payload.weight }],
+        progression: buildProgression([], 0),
+        dailyQuests: [questForDate(plan)].filter(Boolean) as AppState['dailyQuests'],
+        recoveryChain: null,
+        systemEvents: [],
+        lastQuestSyncDate: dateKey(),
+        firedReminderKeys: [],
       };
     }
     case 'SET_WORKOUT_PLAN':
       return { ...state, workoutPlan: action.payload };
     case 'ADD_COMPLETED_WORKOUT': {
-      const newWorkouts = [...state.completedWorkouts, action.payload];
-      const { streak, longest } = calculateStreak(state.completedWorkouts, action.payload);
-      const newState: AppState = {
+      const isActiveQuest = state.dailyQuests.some(quest =>
+        quest.workoutDayId === action.payload.workoutDayId
+        && quest.dateKey === dateKey(action.payload.date)
+        && quest.status === 'active'
+      );
+      const isActiveRecovery = state.recoveryChain?.objectives.some(objective =>
+        objective.workout.id === action.payload.workoutDayId && objective.status === 'active'
+      ) ?? false;
+      const streakResult = isActiveQuest || isActiveRecovery
+        ? calculateStreak(state, action.payload)
+        : { streak: state.currentStreak, longest: state.longestStreak };
+      const progressed = completeProgression({
         ...state,
-        completedWorkouts: newWorkouts,
-        currentStreak: streak,
-        longestStreak: Math.max(longest, state.longestStreak),
-        lastWorkoutDate: action.payload.date,
-      };
-      return { ...newState, achievements: checkAndUnlockAchievements(newState, action.payload) };
+        currentStreak: streakResult.streak,
+        longestStreak: Math.max(streakResult.longest, state.longestStreak),
+        lastWorkoutDate: isActiveQuest || isActiveRecovery ? action.payload.date : state.lastWorkoutDate,
+      }, action.payload);
+      const achievements = checkAndUnlockAchievements(progressed, action.payload);
+      const newlyUnlocked = achievements.filter(item => item.unlocked && !state.achievements.find(previous => previous.id === item.id)?.unlocked);
+      const recordEvents = newlyUnlocked.map(item => ({
+        id: `${Date.now()}:record:${item.id}`,
+        type: 'record_unlocked' as const,
+        title: 'RECORD UNLOCKED',
+        message: item.name,
+        createdAt: Date.now(),
+      }));
+      return { ...progressed, achievements, systemEvents: [...recordEvents, ...progressed.systemEvents].slice(0, 30) };
     }
     case 'ADD_BODY_WEIGHT': {
       const newHistory = [...state.bodyWeightHistory, action.payload];
       const newState = { ...state, bodyWeightHistory: newHistory };
-      return { ...newState, achievements: checkAndUnlockAchievements(newState) };
+      const achievements = checkAndUnlockAchievements(newState);
+      const newlyUnlocked = achievements.filter(item => item.unlocked && !state.achievements.find(previous => previous.id === item.id)?.unlocked);
+      const recordEvents = newlyUnlocked.map(item => ({
+        id: `${Date.now()}:record:${item.id}`,
+        type: 'record_unlocked' as const,
+        title: 'RECORD UNLOCKED',
+        message: item.name,
+        createdAt: Date.now(),
+      }));
+      return { ...newState, achievements, systemEvents: [...recordEvents, ...state.systemEvents].slice(0, 30) };
     }
     case 'UPDATE_PROFILE': {
       if (!state.userProfile) return state;
       const updatedProfile = { ...state.userProfile, ...action.payload };
+      const changedKeys = Object.keys(action.payload) as Array<keyof UserProfile>;
+      if (changedKeys.every(key => key === 'reminderSettings')) {
+        return { ...state, userProfile: updatedProfile };
+      }
       const plan = generateWorkoutPlan(updatedProfile);
       const nutrition = calculateNutrition(updatedProfile);
-      return { ...state, userProfile: updatedProfile, workoutPlan: plan, nutritionPlan: nutrition };
+      return {
+        ...state,
+        userProfile: updatedProfile,
+        workoutPlan: plan,
+        nutritionPlan: nutrition,
+        dailyQuests: [questForDate(plan)].filter(Boolean) as AppState['dailyQuests'],
+        recoveryChain: null,
+        lastQuestSyncDate: dateKey(),
+      };
     }
+    case 'SYNC_QUESTS':
+      return syncQuests(state);
     case 'RESET_ALL':
       return INITIAL_STATE;
     default:
@@ -156,9 +224,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadAppState().then(loaded => {
-      if (loaded) dispatch({ type: 'LOAD_STATE', payload: loaded });
+      if (loaded) dispatch({ type: 'LOAD_STATE', payload: syncQuests(loaded) });
       setIsLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    const subscription = NativeAppState.addEventListener('change', status => {
+      if (status === 'active') dispatch({ type: 'SYNC_QUESTS' });
+    });
+    const reminderTimer = setInterval(() => dispatch({ type: 'SYNC_QUESTS' }), 60_000);
+    return () => {
+      subscription.remove();
+      clearInterval(reminderTimer);
+    };
   }, []);
 
   useEffect(() => {

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Share, Modal, TextInput, Switch } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import colors from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import NeonButton from '@/components/NeonButton';
+import type { DayOfWeek, Goal } from '@/types';
 
 const c = colors.dark;
 
@@ -32,13 +33,49 @@ function SectionHeader({ title }: { title: string }) {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { state, resetAll } = useApp();
+  const { state, resetAll, updateProfile } = useApp();
   const router = useRouter();
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const p = state.userProfile;
   const plan = state.workoutPlan;
+  const [editor, setEditor] = useState<'profile' | 'days' | 'reminders' | null>(null);
+  const [weight, setWeight] = useState(String(p?.weight ?? ''));
+  const [targetWeight, setTargetWeight] = useState(String(p?.targetWeight ?? ''));
+  const [goal, setGoal] = useState<Goal>(p?.goal ?? 'stay_in_shape');
+  const [days, setDays] = useState<DayOfWeek[]>(p?.workoutDays ?? []);
+  const [reminders, setReminders] = useState(p?.reminderSettings ?? []);
+
+  const openEditor = (type: 'profile' | 'days' | 'reminders') => {
+    setWeight(String(p?.weight ?? ''));
+    setTargetWeight(String(p?.targetWeight ?? ''));
+    setGoal(p?.goal ?? 'stay_in_shape');
+    setDays(p?.workoutDays ?? []);
+    setReminders(p?.reminderSettings ?? []);
+    setEditor(type);
+  };
+
+  const saveEditor = () => {
+    if (!p || !editor) return;
+    if (editor === 'profile') {
+      const current = Number(weight);
+      const target = Number(targetWeight);
+      if (!current || !target) return Alert.alert('Invalid profile', 'Enter valid current and target weights.');
+      updateProfile({ weight: current, targetWeight: target, goal });
+    } else if (editor === 'days') {
+      if (!days.length) return Alert.alert('Select a day', 'At least one workout day is required.');
+      updateProfile({ workoutDays: days, workoutsPerWeek: days.length, reminderSettings: reminders.filter(item => days.includes(item.day)) });
+    } else {
+      const invalid = reminders.some(item => {
+        const match = /^(\d{1,2}):(\d{2})$/.exec(item.time);
+        return !match || Number(match[1]) > 23 || Number(match[2]) > 59;
+      });
+      if (invalid) return Alert.alert('Invalid reminder time', 'Use 24-hour HH:MM format, for example 07:00.');
+      updateProfile({ reminderSettings: reminders });
+    }
+    setEditor(null);
+  };
 
   const handleExport = async () => {
     try {
@@ -48,6 +85,10 @@ export default function SettingsScreen() {
         achievements: state.achievements.filter(a => a.unlocked),
         bodyWeightHistory: state.bodyWeightHistory,
         streak: state.currentStreak,
+        progression: state.progression,
+        dailyQuests: state.dailyQuests,
+        recoveryChain: state.recoveryChain,
+        systemEvents: state.systemEvents,
       }, null, 2);
       await Share.share({ message: data, title: 'AriseForge Progress Export' });
     } catch { /* ignore */ }
@@ -82,7 +123,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Profile</Text>
+        <Text style={styles.pageTitle}>Player Dossier</Text>
 
         {/* Profile Card */}
         {p && (
@@ -95,6 +136,7 @@ export default function SettingsScreen() {
               <Text style={styles.profileLevel}>{p.fitnessLevel?.charAt(0).toUpperCase() + p.fitnessLevel.slice(1)} • {p.age} yrs • {p.height} cm</Text>
               <Text style={styles.profileWeight}>{p.weight} kg → {p.targetWeight} kg goal</Text>
             </View>
+            <TouchableOpacity onPress={() => openEditor('profile')}><Feather name="edit-2" size={18} color={c.neonCyan} /></TouchableOpacity>
           </View>
         )}
 
@@ -105,6 +147,8 @@ export default function SettingsScreen() {
             ['Current Streak', `${state.currentStreak} days`],
             ['Best Streak', `${state.longestStreak} days`],
             ['Achievements', `${state.achievements.filter(a => a.unlocked).length}/${state.achievements.length}`],
+            ['System Level', `${state.progression.level} / Rank ${state.progression.rank}`],
+            ['Total XP', String(state.progression.xp)],
             ['Plan Type', plan?.split ?? '—'],
           ].map(([label, val]) => (
             <View key={label} style={[styles.statRow, { borderColor: c.border }]}>
@@ -119,10 +163,10 @@ export default function SettingsScreen() {
         <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
           <SettingRow icon="calendar" label="Workout Days"
             value={p?.workoutDays.map(d => d.charAt(0).toUpperCase()).join(', ')}
-            onPress={handleResetOnboarding} />
+            onPress={() => openEditor('days')} />
           <SettingRow icon="clock" label="Reminders"
             value={p?.reminderSettings.length ? `${p.reminderSettings.length} active` : 'None'}
-            onPress={handleResetOnboarding} />
+            onPress={() => openEditor('reminders')} />
         </View>
 
         {/* Data */}
@@ -144,6 +188,24 @@ export default function SettingsScreen() {
           <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>Your training. Your forge.</Text>
         </View>
       </ScrollView>
+      <Modal visible={editor !== null} transparent animationType="fade" onRequestClose={() => setEditor(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{editor === 'profile' ? 'EDIT PLAYER PROFILE' : editor === 'days' ? 'EDIT QUEST DAYS' : 'EDIT REMINDERS'}</Text>
+            {editor === 'profile' && <>
+              <TextInput style={styles.input} value={weight} onChangeText={setWeight} keyboardType="numeric" placeholder="Current weight" placeholderTextColor={c.mutedForeground} />
+              <TextInput style={styles.input} value={targetWeight} onChangeText={setTargetWeight} keyboardType="numeric" placeholder="Target weight" placeholderTextColor={c.mutedForeground} />
+              <View style={styles.chips}>{(['build_muscle', 'lose_weight', 'look_better', 'stay_in_shape'] as Goal[]).map(item => <TouchableOpacity key={item} style={[styles.chip, goal === item && styles.chipActive]} onPress={() => setGoal(item)}><Text style={styles.chipText}>{item.replaceAll('_', ' ')}</Text></TouchableOpacity>)}</View>
+            </>}
+            {editor === 'days' && <View style={styles.chips}>{(['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as DayOfWeek[]).map(day => <TouchableOpacity key={day} style={[styles.chip, days.includes(day) && styles.chipActive]} onPress={() => setDays(current => current.includes(day) ? current.filter(item => item !== day) : [...current, day])}><Text style={styles.chipText}>{day.slice(0, 3).toUpperCase()}</Text></TouchableOpacity>)}</View>}
+            {editor === 'reminders' && (p?.workoutDays ?? []).map(day => {
+              const reminder = reminders.find(item => item.day === day) ?? { day, time: '07:00', enabled: false };
+              return <View key={day} style={styles.reminderEdit}><Text style={styles.reminderLabel}>{day.toUpperCase()}</Text><TextInput style={[styles.input, { flex: 1 }]} value={reminder.time} onChangeText={time => setReminders(current => [...current.filter(item => item.day !== day), { ...reminder, time }])} /><Switch value={reminder.enabled} onValueChange={enabled => setReminders(current => [...current.filter(item => item.day !== day), { ...reminder, enabled }])} trackColor={{ true: c.neonCyan }} /></View>;
+            })}
+            <View style={styles.modalButtons}><NeonButton title="CANCEL" variant="ghost" onPress={() => setEditor(null)} style={{ flex: 1 }} /><NeonButton title="SAVE" onPress={saveEditor} style={{ flex: 1 }} /></View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -171,4 +233,15 @@ const styles = StyleSheet.create({
   rowValue: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   appInfo: { alignItems: 'center', gap: 4, paddingVertical: 20 },
   appInfoText: { fontFamily: 'Inter_400Regular', fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: c.darkCard, borderWidth: 1, borderColor: c.neonCyan, padding: 18, gap: 14 },
+  modalTitle: { color: c.neonCyan, fontFamily: 'Inter_700Bold', letterSpacing: 1.5, fontSize: 15 },
+  input: { color: c.foreground, backgroundColor: c.secondary, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, paddingVertical: 10, fontFamily: 'Inter_500Medium' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1, borderColor: c.border, backgroundColor: c.secondary, paddingHorizontal: 10, paddingVertical: 8 },
+  chipActive: { borderColor: c.neonCyan, backgroundColor: c.neonGlow },
+  chipText: { color: c.foreground, fontFamily: 'Inter_600SemiBold', fontSize: 11, textTransform: 'uppercase' },
+  reminderEdit: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reminderLabel: { color: c.foreground, fontFamily: 'Inter_600SemiBold', fontSize: 11, width: 78 },
+  modalButtons: { flexDirection: 'row', gap: 10, marginTop: 4 },
 });

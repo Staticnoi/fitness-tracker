@@ -21,7 +21,7 @@ export default function TabLayout() {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : c.darkCard,
           borderTopWidth: 1,
-          borderTopColor: c.border,
+          borderTopColor: c.neonCyan + "50",
           elevation: 0,
           height: isWeb ? 84 : 62,
           paddingBottom: isWeb ? 20 : 8,
@@ -41,35 +41,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
+          title: "System",
+          tabBarIcon: ({ color }) => <Feather name="cpu" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="workout"
         options={{
-          title: "Workout",
-          tabBarIcon: ({ color }) => <Feather name="activity" size={22} color={color} />,
+          title: "Quests",
+          tabBarIcon: ({ color }) => <Feather name="crosshair" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
-          title: "Progress",
+          title: "Status",
           tabBarIcon: ({ color }) => <Feather name="bar-chart-2" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="achievements"
         options={{
-          title: "Achieve",
+          title: "Records",
           tabBarIcon: ({ color }) => <Feather name="award" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Profile",
+          title: "Player",
           tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
         }}
       />

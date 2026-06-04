@@ -33,7 +33,7 @@ export default function StyledCard({ children, style, neonBorder, variant = 'def
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   neonShadow: {

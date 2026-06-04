@@ -109,6 +109,14 @@ export default function HistoryScreen() {
                     </View>
                   )}
                 </View>
+                {w.exercises.some(ex => ex.notes?.trim()) && (
+                  <View style={styles.notes}>
+                    <Feather name="file-text" size={13} color={c.neonCyan} />
+                    <Text style={styles.notesText} numberOfLines={3}>
+                      {w.exercises.filter(ex => ex.notes?.trim()).map(ex => `${ex.name}: ${ex.notes}`).join(' • ')}
+                    </Text>
+                  </View>
+                )}
               </View>
             ))}
           </View>
@@ -154,6 +162,8 @@ const styles = StyleSheet.create({
   exChip: { flexDirection: 'row', gap: 4, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, alignItems: 'center' },
   exChipText: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   exSets: { fontFamily: 'Inter_500Medium', fontSize: 11 },
+  notes: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 9 },
+  notesText: { flex: 1, color: c.mutedForeground, fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16 },
   emptyState: { borderRadius: 16, borderWidth: 1, padding: 40, alignItems: 'center', gap: 12, marginTop: 20 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, color: c.foreground },
   emptySub: { fontFamily: 'Inter_400Regular', fontSize: 14, textAlign: 'center' },

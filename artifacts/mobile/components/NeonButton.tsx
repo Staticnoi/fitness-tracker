@@ -62,11 +62,11 @@ export default function NeonButton({ title, onPress, variant = 'primary', size =
 }
 
 const styles = StyleSheet.create({
-  base: { borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  base: { borderRadius: 2, alignItems: 'center', justifyContent: 'center' },
   sm: { paddingVertical: 8, paddingHorizontal: 16 },
   md: { paddingVertical: 14, paddingHorizontal: 24 },
   lg: { paddingVertical: 18, paddingHorizontal: 32 },
-  text: { fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3 },
+  text: { fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
   textSm: { fontSize: 13 },
   textMd: { fontSize: 15 },
   textLg: { fontSize: 17 },

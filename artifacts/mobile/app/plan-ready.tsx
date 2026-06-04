@@ -38,11 +38,11 @@ export default function PlanReadyScreen() {
         {/* Badge */}
         <View style={styles.badge}>
           <Feather name="check-circle" size={14} color={c.success} />
-          <Text style={styles.badgeText}>PLAN GENERATED</Text>
+          <Text style={styles.badgeText}>REGISTRATION COMPLETE</Text>
         </View>
 
-        <Text style={styles.title}>Your Training{'\n'}Plan is Ready</Text>
-        <Text style={styles.subtitle}>Personalized for your goals and schedule</Text>
+        <Text style={styles.title}>QUEST PROTOCOL{'\n'}INITIALIZED</Text>
+        <Text style={styles.subtitle}>The System has assigned your training directives</Text>
 
         {/* Plan card */}
         <Animated.View style={[styles.planCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
@@ -79,7 +79,7 @@ export default function PlanReadyScreen() {
 
         <Animated.View style={{ opacity: textFade, width: '100%', gap: 12 }}>
           <NeonButton
-            title="Enter Dashboard"
+            title="ENTER SYSTEM"
             size="lg"
             onPress={() => router.replace('/(tabs)')}
             style={{ width: '100%' }}
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: c.success, letterSpacing: 1.5 },
   title: { fontFamily: 'Inter_700Bold', fontSize: 36, color: c.foreground, textAlign: 'center', lineHeight: 42, letterSpacing: -1 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, color: c.mutedForeground, textAlign: 'center' },
-  planCard: { width: '100%', backgroundColor: c.card, borderWidth: 1.5, borderColor: c.neonCyan + '60', borderRadius: 20, padding: 20, gap: 14 },
+  planCard: { width: '100%', backgroundColor: c.card, borderWidth: 1.5, borderColor: c.neonCyan + '60', borderRadius: 3, padding: 20, gap: 14 },
   planHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   planName: { fontFamily: 'Inter_700Bold', fontSize: 18, color: c.foreground },
   divider: { height: 1, backgroundColor: c.border },

@@ -51,6 +51,7 @@ export interface Exercise {
 export interface CompletedSet {
   reps: number;
   weight?: number;
+  completed?: boolean;
 }
 
 export interface WorkoutExercise {
@@ -90,6 +91,7 @@ export interface CompletedWorkout {
     notes?: string;
   }>;
   totalVolume: number;
+  progressionAwarded?: boolean;
 }
 
 export interface Achievement {
@@ -123,7 +125,64 @@ export interface NutritionPlan {
   }>;
 }
 
+export type PlayerRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type QuestStatus = 'active' | 'completed' | 'missed';
+export type ProgressionEventType = 'quest_complete' | 'quest_failed' | 'xp_gain' | 'level_up' | 'rank_up' | 'record_unlocked' | 'recovery_complete' | 'reminder';
+
+export interface PlayerStats {
+  strength: number;
+  endurance: number;
+  consistency: number;
+  discipline: number;
+  recovery: number;
+}
+
+export interface ProgressionProfile {
+  xp: number;
+  level: number;
+  rank: PlayerRank;
+  stats: PlayerStats;
+  completedRecoveryParts: number;
+}
+
+export interface DailyQuest {
+  id: string;
+  dateKey: string;
+  workoutDayId: string;
+  title: string;
+  prescribedSets: number;
+  status: QuestStatus;
+  xpReward: number;
+  completedAt?: number;
+}
+
+export interface RecoveryObjective {
+  id: string;
+  dueDateKey: string;
+  status: QuestStatus;
+  workout: WorkoutDay;
+  xpReward: number;
+  completedAt?: number;
+}
+
+export interface RecoveryChain {
+  id: string;
+  sourceQuestId: string;
+  createdAt: number;
+  status: 'active' | 'completed';
+  objectives: RecoveryObjective[];
+}
+
+export interface ProgressionEvent {
+  id: string;
+  type: ProgressionEventType;
+  title: string;
+  message: string;
+  createdAt: number;
+}
+
 export interface AppState {
+  schemaVersion: number;
   onboardingCompleted: boolean;
   userProfile: UserProfile | null;
   workoutPlan: WorkoutPlan | null;
@@ -134,4 +193,10 @@ export interface AppState {
   longestStreak: number;
   lastWorkoutDate: number | null;
   nutritionPlan: NutritionPlan | null;
+  progression: ProgressionProfile;
+  dailyQuests: DailyQuest[];
+  recoveryChain: RecoveryChain | null;
+  systemEvents: ProgressionEvent[];
+  lastQuestSyncDate: string;
+  firedReminderKeys: string[];
 }

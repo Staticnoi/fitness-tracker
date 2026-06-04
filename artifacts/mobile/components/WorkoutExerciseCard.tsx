@@ -27,7 +27,9 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
     const updated = [...checkedSets];
     updated[i] = !updated[i];
     setCheckedSets(updated);
-    onUpdate(completedSets, notes);
+    const sets = completedSets.map((set, index) => ({ ...set, completed: updated[index] }));
+    setCompletedSets(sets);
+    onUpdate(sets, notes);
   };
 
   const updateSet = (i: number, field: 'reps' | 'weight', val: string) => {
@@ -49,7 +51,7 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
         <View style={styles.exerciseInfo}>
           <Text style={[styles.name, { color: allChecked ? c.success : c.foreground }]}>{item.exercise.name}</Text>
           <Text style={[styles.meta, { color: c.mutedForeground }]}>
-            {item.exercise.targetMuscle.replace('_', ' ')} • {item.sets} sets × {item.reps} reps • {item.restTime}s rest
+            {item.exercise.targetMuscle.replace('_', ' ')} | {item.sets} sets x {item.reps} reps | {item.restTime}s rest
           </Text>
         </View>
         <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.mutedForeground} />
@@ -62,7 +64,7 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Set</Text>
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Reps</Text>
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Weight (kg)</Text>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>✓</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Done</Text>
           </View>
           {Array.from({ length: item.sets }, (_, i) => (
             <View key={i} style={[styles.setRow, checkedSets[i] && { opacity: 0.6 }]}>
@@ -101,12 +103,12 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
             multiline
           />
           {/* Instructions */}
-          <TouchableOpacity style={styles.tipsRow}>
+          <View style={styles.tipsRow}>
             <Feather name="info" size={13} color={c.neonCyan} />
             <Text style={[styles.tipsText, { color: c.neonCyan }]}>
               {item.exercise.instructions[0]}
             </Text>
-          </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -114,7 +116,7 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', marginBottom: 10 },
+  card: { borderRadius: 3, borderWidth: 1, overflow: 'hidden', marginBottom: 10 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   indexBadge: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   indexText: { fontFamily: 'Inter_700Bold', fontSize: 14 },

@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Platform, Dimensions, Modal, TextInput, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import StatCard from '@/components/StatCard';
+import { RankBadge, SystemPanel, SystemStat, XpBar } from '@/components/SystemUI';
+import NeonButton from '@/components/NeonButton';
 
 const c = colors.dark;
 const { width } = Dimensions.get('window');
@@ -72,7 +74,9 @@ function WeightChart({ data }: { data: Array<{ date: number; weight: number }> }
 
 export default function ProgressScreen() {
   const insets = useSafeAreaInsets();
-  const { state } = useApp();
+  const { state, addBodyWeight } = useApp();
+  const [weightModal, setWeightModal] = useState(false);
+  const [weight, setWeight] = useState('');
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -108,7 +112,15 @@ export default function ProgressScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Progress</Text>
+        <View style={styles.statusHeader}>
+          <View><Text style={styles.statusEyebrow}>SYSTEM // PLAYER ANALYSIS</Text><Text style={styles.pageTitle}>Status</Text></View>
+          <RankBadge rank={state.progression.rank} size={62} />
+        </View>
+        <SystemPanel active style={styles.progressionCard}>
+          <XpBar xp={state.progression.xp} level={state.progression.level} />
+          {(Object.entries(state.progression.stats) as Array<[string, number]>).map(([label, value]) => <SystemStat key={label} label={label} value={value} />)}
+        </SystemPanel>
+        <NeonButton title="LOG BODY WEIGHT" variant="secondary" onPress={() => setWeightModal(true)} style={{ marginBottom: 18 }} />
 
         {/* Stats */}
         <View style={styles.statsRow}>
@@ -169,6 +181,19 @@ export default function ProgressScreen() {
           </View>
         )}
       </ScrollView>
+      <Modal visible={weightModal} transparent animationType="fade" onRequestClose={() => setWeightModal(false)}>
+        <View style={styles.modalOverlay}><View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>BODY WEIGHT ENTRY</Text>
+          <TextInput style={styles.modalInput} value={weight} onChangeText={setWeight} keyboardType="numeric" placeholder="kg" placeholderTextColor={c.mutedForeground} autoFocus />
+          <View style={styles.modalButtons}><NeonButton title="CANCEL" variant="ghost" onPress={() => setWeightModal(false)} style={{ flex: 1 }} /><NeonButton title="SAVE" onPress={() => {
+            const value = Number(weight);
+            if (value < 20 || value > 300) return Alert.alert('Invalid weight', 'Enter a value between 20 and 300 kg.');
+            addBodyWeight({ date: Date.now(), weight: value });
+            setWeight('');
+            setWeightModal(false);
+          }} style={{ flex: 1 }} /></View>
+        </View></View>
+      </Modal>
     </View>
   );
 }
@@ -177,6 +202,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scroll: { paddingHorizontal: 20 },
   pageTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, color: c.foreground, letterSpacing: -1, paddingVertical: 20 },
+  statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingRight: 10 },
+  statusEyebrow: { color: c.neonCyan, fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 1.5, marginBottom: -14 },
+  progressionCard: { gap: 14, marginBottom: 18 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 360, backgroundColor: c.darkCard, borderWidth: 1, borderColor: c.neonCyan, padding: 18, gap: 14 },
+  modalTitle: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 14, letterSpacing: 1.5 },
+  modalInput: { color: c.foreground, backgroundColor: c.secondary, borderWidth: 1, borderColor: c.border, padding: 12, fontFamily: 'Inter_700Bold', fontSize: 28, textAlign: 'center' },
+  modalButtons: { flexDirection: 'row', gap: 10 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   chartCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16, gap: 12 },
   chartContainer: { gap: 12 },

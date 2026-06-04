@@ -9,6 +9,7 @@ import WorkoutExerciseCard from '@/components/WorkoutExerciseCard';
 import NeonButton from '@/components/NeonButton';
 import { useApp } from '@/context/AppContext';
 import type { CompletedSet } from '@/types';
+import { dateKey } from '@/utils/progression';
 
 const c = colors.dark;
 
@@ -27,7 +28,8 @@ export default function ActiveWorkoutScreen() {
   const [saving, setSaving] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const workoutDay = state.workoutPlan?.days.find(d => d.id === dayId);
+  const workoutDay = state.workoutPlan?.days.find(d => d.id === dayId)
+    ?? state.recoveryChain?.objectives.find(objective => objective.workout.id === dayId)?.workout;
   const exerciseData = useRef<Array<{ sets: CompletedSet[]; notes: string }>>(
     workoutDay ? workoutDay.exercises.map(() => ({ sets: [], notes: '' })) : []
   );
@@ -42,7 +44,19 @@ export default function ActiveWorkoutScreen() {
   }, []);
 
   const completeWorkout = () => {
-    Alert.alert('Complete Workout?', 'Mark this workout as done?', [
+    const alreadyCleared = state.dailyQuests.some(quest => quest.workoutDayId === dayId && quest.dateKey === dateKey() && quest.status === 'completed')
+      || state.recoveryChain?.objectives.some(objective => objective.workout.id === dayId && objective.status === 'completed');
+    if (alreadyCleared) {
+      Alert.alert('Quest Already Cleared', 'This quest has already granted its progression reward.');
+      return;
+    }
+    const requiredSets = workoutDay?.exercises.reduce((sum, exercise) => sum + exercise.sets, 0) ?? 0;
+    const completedSets = exerciseData.current.reduce((sum, exercise) => sum + exercise.sets.filter(set => set.completed && set.reps > 0).length, 0);
+    if (completedSets < requiredSets) {
+      Alert.alert('Quest Requirements Incomplete', `Complete every prescribed set before clearing this quest. ${completedSets}/${requiredSets} sets verified.`);
+      return;
+    }
+    Alert.alert('Clear Quest?', 'Submit all verified training data to the System?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Complete', onPress: async () => {
@@ -62,7 +76,7 @@ export default function ActiveWorkoutScreen() {
             exercises: (workoutDay?.exercises ?? []).map((ex, i) => ({
               name: ex.exercise.name,
               targetMuscle: ex.exercise.targetMuscle,
-              sets: exerciseData.current[i]?.sets ?? [],
+              sets: (exerciseData.current[i]?.sets ?? []).filter(set => set.completed),
               notes: exerciseData.current[i]?.notes,
             })),
             totalVolume,
@@ -97,7 +111,7 @@ export default function ActiveWorkoutScreen() {
           <Feather name="x" size={20} color={c.foreground} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.workoutName}>{workoutDay.name}</Text>
+          <Text style={styles.workoutName}>ACTIVE QUEST // {workoutDay.name}</Text>
           <Text style={styles.timerText}>{formatTime(elapsed)}</Text>
         </View>
         <View style={[styles.splitBadge, { backgroundColor: c.neonCyan + '15', borderColor: c.neonCyan + '40' }]}>
@@ -132,7 +146,7 @@ export default function ActiveWorkoutScreen() {
 
       {/* Complete button */}
       <View style={[styles.footer, { paddingBottom: botPad + 12 }]}>
-        <NeonButton title="Complete Workout" size="lg" onPress={completeWorkout} loading={saving} style={styles.completeBtn} />
+        <NeonButton title="CLEAR QUEST" size="lg" onPress={completeWorkout} loading={saving} style={styles.completeBtn} />
       </View>
     </View>
   );
@@ -149,7 +163,7 @@ const styles = StyleSheet.create({
   splitBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   splitText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 8 },
-  statChip: { flex: 1, backgroundColor: c.card, borderRadius: 12, borderWidth: 1, borderColor: c.border, padding: 10, alignItems: 'center' },
+  statChip: { flex: 1, backgroundColor: c.card, borderRadius: 3, borderWidth: 1, borderColor: c.border, padding: 10, alignItems: 'center' },
   statVal: { fontFamily: 'Inter_700Bold', fontSize: 18, color: c.foreground },
   statLbl: { fontFamily: 'Inter_400Regular', fontSize: 11, color: c.mutedForeground },
   list: { flex: 1 },
