@@ -9,6 +9,7 @@ import { dateKey } from '@/utils/progression';
 import { RankBadge, SystemAlert, SystemPanel, XpBar } from '@/components/SystemUI';
 import AchievementBadge from '@/components/AchievementBadge';
 import { getNextWorkout } from '@/utils/workoutGenerator';
+import { tr } from '@/utils/i18n';
 
 const c = colors.dark;
 
@@ -16,6 +17,7 @@ export default function CommandCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { state } = useApp();
+  const language = state.language;
   const today = dateKey();
   const quest = state.dailyQuests.find(item => item.dateKey === today);
   const recovery = state.recoveryChain?.status === 'active' ? state.recoveryChain : null;
@@ -31,18 +33,18 @@ export default function CommandCenterScreen() {
     <View style={[styles.container, { paddingTop: Platform.OS === 'web' ? 67 : insets.top }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === 'web' ? 34 : insets.bottom) + 90 }]}>
         <View style={styles.header}>
-          <View style={styles.headerCopy}><Text style={styles.eyebrow}>SYSTEM // COMMAND CENTER</Text><Text style={styles.title}>ARISE REFORGED</Text><Text style={styles.headerMeta}>PLAYER STATUS // LEVEL {state.progression.level}</Text></View>
+          <View style={styles.headerCopy}><Text style={styles.eyebrow}>{tr(language, 'home.system')}</Text><Text style={styles.title}>ARISE REFORGED</Text><Text style={styles.headerMeta}>{tr(language, 'home.playerStatus')} // LEVEL {state.progression.level}</Text></View>
           <RankBadge rank={state.progression.rank} size={76} />
         </View>
         <SystemPanel active style={styles.gap}>
           <View style={styles.playerRow}>
-            <View style={styles.playerIdentity}><Text style={styles.micro}>REGISTERED PLAYER</Text><Text style={styles.goal}>{state.userProfile?.goal.replaceAll('_', ' ').toUpperCase()}</Text></View>
-            <View style={styles.streak}><Text style={styles.streakValue}>{state.currentStreak}</Text><Text style={styles.micro}>STREAK</Text></View>
+            <View style={styles.playerIdentity}><Text style={styles.micro}>{tr(language, 'home.registeredPlayer')}</Text><Text style={styles.goal}>{state.userProfile?.goal.replaceAll('_', ' ').toUpperCase()}</Text></View>
+            <View style={styles.streak}><Text style={styles.streakValue}>{state.currentStreak}</Text><Text style={styles.micro}>{tr(language, 'home.streak')}</Text></View>
           </View>
           <XpBar xp={state.progression.xp} level={state.progression.level} />
         </SystemPanel>
 
-        <Text style={styles.section}>DAILY QUEST</Text>
+        <Text style={styles.section}>{tr(language, 'home.dailyQuest')}</Text>
         {quest ? (
           <TouchableOpacity disabled={quest.status !== 'active'} onPress={() => open(quest.workoutDayId)}>
             <SystemPanel active={quest.status === 'active'} style={styles.gap}>
@@ -51,13 +53,13 @@ export default function CommandCenterScreen() {
                 <View style={{ flex: 1 }}><Text style={styles.micro}>{quest.status.toUpperCase()}</Text><Text style={styles.questTitle}>{quest.title}</Text></View>
                 <Text style={styles.reward}>+{quest.xpReward} XP</Text>
               </View>
-              <Text style={styles.meta}>VERIFY ALL {quest.prescribedSets} PRESCRIBED SETS</Text>
+              <Text style={styles.meta}>{tr(language, 'home.verifySets', { count: quest.prescribedSets })}</Text>
             </SystemPanel>
           </TouchableOpacity>
-        ) : <SystemPanel><Text style={styles.meta}>NO QUEST ASSIGNED // RECOVERY DAY</Text></SystemPanel>}
+        ) : <SystemPanel><Text style={styles.meta}>{tr(language, 'home.noQuest')}</Text></SystemPanel>}
 
         {nextRecovery && <>
-          <Text style={[styles.section, { color: c.destructive }]}>RECOVERY PROTOCOL</Text>
+          <Text style={[styles.section, { color: c.destructive }]}>{tr(language, 'home.recovery')}</Text>
           <TouchableOpacity onPress={() => open(nextRecovery.workout.id)}>
             <SystemPanel style={[styles.gap, { borderColor: c.destructive }]}>
               <Text style={[styles.micro, { color: c.destructive }]}>MANDATORY CHAIN // {recovery?.objectives.filter(item => item.status === 'completed').length}/3</Text>
@@ -67,7 +69,7 @@ export default function CommandCenterScreen() {
           </TouchableOpacity>
         </>}
 
-        <Text style={styles.section}>SYSTEM METRICS</Text>
+        <Text style={styles.section}>{tr(language, 'home.metrics')}</Text>
         <View style={styles.metrics}>
           {[
             ['WEEKLY', `${weeklyCompleted}/${state.userProfile?.workoutsPerWeek ?? 0}`],
@@ -76,18 +78,18 @@ export default function CommandCenterScreen() {
           ].map(([label, value]) => <SystemPanel key={label} style={styles.metric}><Text style={styles.micro}>{label}</Text><Text style={styles.metricValue} numberOfLines={1}>{value}</Text></SystemPanel>)}
         </View>
 
-        <Text style={styles.section}>QUICK START</Text>
+        <Text style={styles.section}>{tr(language, 'home.quickStart')}</Text>
         <View style={styles.actions}>
-          {quest?.status === 'active' && <TouchableOpacity style={styles.action} onPress={() => open(quest.workoutDayId)}><Feather name="play" size={17} color={c.success} /><Text style={styles.actionText}>START QUEST</Text></TouchableOpacity>}
+          {quest?.status === 'active' && <TouchableOpacity style={styles.action} onPress={() => open(quest.workoutDayId)}><Feather name="play" size={17} color={c.success} /><Text style={styles.actionText}>{tr(language, 'home.startQuest')}</Text></TouchableOpacity>}
           {[
-            ['book-open', 'EXERCISES', '/(tabs)/exercises'],
-            ['pie-chart', 'NUTRITION', '/(tabs)/nutrition'],
-            ['clock', 'HISTORY', '/(tabs)/history'],
+            ['book-open', tr(language, 'home.exercises'), '/(tabs)/exercises'],
+            ['pie-chart', tr(language, 'home.nutrition'), '/(tabs)/nutrition'],
+            ['clock', tr(language, 'home.history'), '/(tabs)/history'],
           ].map(([icon, label, route]) => <TouchableOpacity key={label} style={styles.action} onPress={() => router.push(route as never)}><Feather name={icon as never} size={17} color={c.neonCyan} /><Text style={styles.actionText}>{label}</Text></TouchableOpacity>)}
         </View>
 
         {state.achievements.some(item => item.unlocked) && <>
-          <Text style={styles.section}>RECENT RECORDS</Text>
+          <Text style={styles.section}>{tr(language, 'home.records')}</Text>
           <SystemPanel style={styles.recordRow}>{state.achievements.filter(item => item.unlocked).slice(-4).map(item => <AchievementBadge key={item.id} achievement={item} size="sm" />)}</SystemPanel>
         </>}
 
@@ -96,8 +98,8 @@ export default function CommandCenterScreen() {
           <SystemPanel>{recent.map(item => <View key={item.id} style={styles.historyRow}><View><Text style={styles.historyName}>{item.workoutName}</Text><Text style={styles.meta}>{new Date(item.date).toLocaleDateString()}</Text></View><Text style={styles.reward}>{item.duration} MIN</Text></View>)}</SystemPanel>
         </>}
 
-        <Text style={styles.section}>SYSTEM LOG</Text>
-        <SystemPanel>{state.systemEvents.length ? state.systemEvents.slice(0, 5).map(item => <SystemAlert key={item.id} event={item} />) : <Text style={styles.meta}>NO RECENT SYSTEM EVENTS</Text>}</SystemPanel>
+        <Text style={styles.section}>{tr(language, 'home.systemLog')}</Text>
+        <SystemPanel>{state.systemEvents.length ? state.systemEvents.slice(0, 5).map(item => <SystemAlert key={item.id} event={item} />) : <Text style={styles.meta}>{tr(language, 'home.noEvents')}</Text>}</SystemPanel>
       </ScrollView>
     </View>
   );

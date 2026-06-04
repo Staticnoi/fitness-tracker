@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Modal, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '@/constants/colors';
 import { EXERCISES } from '@/constants/exercises';
 import type { MuscleGroup } from '@/types';
+import type { Language } from '@/types';
+import { useApp } from '@/context/AppContext';
+import { tr } from '@/utils/i18n';
 
 const c = colors.dark;
 
@@ -22,7 +25,8 @@ const MUSCLE_FILTERS: Array<{ label: string; value: MuscleGroup | 'all' }> = [
 
 const DIFFICULTY_COLORS: Record<string, string> = { beginner: c.success, intermediate: c.warning, advanced: c.destructive };
 
-function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES[0]; onClose: () => void }) {
+function ExerciseDetailModal({ exercise, language, onClose }: { exercise: typeof EXERCISES[0]; language: Language; onClose: () => void }) {
+  const openDemo = () => Linking.openURL(exercise.demoUrl ?? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${exercise.name} proper form tutorial`)}`);
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet">
       <View style={[styles.modalContainer, { backgroundColor: c.background }]}>
@@ -32,7 +36,7 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES
             <View>
               <Text style={styles.modalTitle}>{exercise.name}</Text>
               <Text style={[styles.modalSub, { color: c.mutedForeground }]}>
-                {exercise.targetMuscle.replace('_', ' ')} • {exercise.equipment.join(', ').replace(/_/g, ' ')}
+                {exercise.targetMuscle.replace('_', ' ')} | {exercise.equipment.join(', ').replace(/_/g, ' ')}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: c.secondary }]}>
@@ -45,19 +49,24 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES
               <Text style={[styles.tagText, { color: DIFFICULTY_COLORS[exercise.difficulty] }]}>{exercise.difficulty}</Text>
             </View>
             <View style={[styles.tag, { backgroundColor: c.secondary, borderColor: c.border }]}>
-              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.sets} sets</Text>
+              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.sets} {tr(language, 'exercise.sets')}</Text>
             </View>
             <View style={[styles.tag, { backgroundColor: c.secondary, borderColor: c.border }]}>
-              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.reps} reps</Text>
+              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.reps} {tr(language, 'exercise.reps')}</Text>
             </View>
             <View style={[styles.tag, { backgroundColor: c.secondary, borderColor: c.border }]}>
-              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.restTime}s rest</Text>
+              <Text style={[styles.tagText, { color: c.mutedForeground }]}>{exercise.restTime}s {tr(language, 'exercise.rest')}</Text>
             </View>
           </View>
         </View>
         <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity style={styles.demoCard} onPress={openDemo}>
+            <View style={styles.demoIcon}><Feather name="play" size={22} color={c.neonCyan} /></View>
+            <View style={{ flex: 1 }}><Text style={styles.demoTitle}>{tr(language, 'exercise.demo')}</Text><Text style={styles.demoHint}>{tr(language, 'exercise.demoHint')}</Text></View>
+            <Feather name="external-link" size={16} color={c.mutedForeground} />
+          </TouchableOpacity>
           {/* Instructions */}
-          <Text style={styles.detailSection}>Instructions</Text>
+          <Text style={styles.detailSection}>{tr(language, 'exercise.instructions')}</Text>
           {exercise.instructions.map((inst, i) => (
             <View key={i} style={styles.instructionRow}>
               <View style={[styles.instNum, { backgroundColor: c.neonCyan + '20' }]}>
@@ -67,7 +76,7 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES
             </View>
           ))}
           {/* Common Mistakes */}
-          <Text style={[styles.detailSection, { marginTop: 20 }]}>Common Mistakes</Text>
+          <Text style={[styles.detailSection, { marginTop: 20 }]}>{tr(language, 'exercise.mistakes')}</Text>
           {exercise.commonMistakes.map((m, i) => (
             <View key={i} style={styles.mistakeRow}>
               <Feather name="alert-circle" size={14} color={c.warning} />
@@ -75,7 +84,7 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES
             </View>
           ))}
           {/* Safety */}
-          <Text style={[styles.detailSection, { marginTop: 20 }]}>Safety Notes</Text>
+          <Text style={[styles.detailSection, { marginTop: 20 }]}>{tr(language, 'exercise.safety')}</Text>
           <View style={[styles.safetyCard, { backgroundColor: c.success + '10', borderColor: c.success + '30' }]}>
             <Feather name="shield" size={16} color={c.success} />
             <Text style={[styles.safetyText, { color: c.foreground }]}>{exercise.safetyNotes}</Text>
@@ -87,6 +96,8 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: typeof EXERCISES
 }
 
 export default function ExercisesScreen() {
+  const { state } = useApp();
+  const language = state.language;
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<MuscleGroup | 'all'>('all');
@@ -106,13 +117,13 @@ export default function ExercisesScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.headerArea}>
-        <Text style={styles.pageTitle}>Exercise Guide</Text>
+        <Text style={styles.pageTitle}>{tr(language, 'exercise.title')}</Text>
         {/* Search */}
         <View style={[styles.searchBox, { backgroundColor: c.card, borderColor: c.border }]}>
           <Feather name="search" size={16} color={c.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: c.foreground }]}
-            placeholder="Search exercises..."
+            placeholder={tr(language, 'exercise.search')}
             placeholderTextColor={c.mutedForeground}
             value={search}
             onChangeText={setSearch}
@@ -133,7 +144,7 @@ export default function ExercisesScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <Text style={[styles.countText, { color: c.mutedForeground }]}>{filtered.length} exercises</Text>
+        <Text style={[styles.countText, { color: c.mutedForeground }]}>{tr(language, 'exercise.count', { count: filtered.length })}</Text>
       </View>
 
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
@@ -145,7 +156,7 @@ export default function ExercisesScreen() {
               <View style={styles.exInfo}>
                 <Text style={styles.exName}>{ex.name}</Text>
                 <Text style={[styles.exMeta, { color: c.mutedForeground }]}>
-                  {ex.targetMuscle.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} • {ex.sets} × {ex.reps}
+                  {ex.targetMuscle.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} | {ex.sets} x {ex.reps}
                 </Text>
               </View>
               <View style={styles.exBadges}>
@@ -156,20 +167,20 @@ export default function ExercisesScreen() {
               </View>
             </View>
             <Text style={[styles.exEquip, { color: c.mutedForeground }]}>
-              {ex.equipment.map(e => e.replace(/_/g, ' ')).join(' • ')}
+              {ex.equipment.map(e => e.replace(/_/g, ' ')).join(' | ')}
             </Text>
           </TouchableOpacity>
         ))}
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
             <Feather name="search" size={40} color={c.mutedForeground} />
-            <Text style={[styles.emptyTitle, { color: c.foreground }]}>No exercises found</Text>
-            <Text style={[styles.emptySub, { color: c.mutedForeground }]}>Try a different search or filter</Text>
+            <Text style={[styles.emptyTitle, { color: c.foreground }]}>{tr(language, 'exercise.none')}</Text>
+            <Text style={[styles.emptySub, { color: c.mutedForeground }]}>{tr(language, 'exercise.tryAgain')}</Text>
           </View>
         )}
       </ScrollView>
 
-      {selected && <ExerciseDetailModal exercise={selected} onClose={() => setSelected(null)} />}
+      {selected && <ExerciseDetailModal exercise={selected} language={language} onClose={() => setSelected(null)} />}
     </View>
   );
 }
@@ -209,6 +220,10 @@ const styles = StyleSheet.create({
   tag: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   tagText: { fontFamily: 'Inter_500Medium', fontSize: 12 },
   modalScroll: { padding: 20, paddingBottom: 40 },
+  demoCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: c.neonCyan, backgroundColor: c.neonGlow, padding: 14, marginBottom: 22 },
+  demoIcon: { width: 42, height: 42, borderWidth: 1, borderColor: c.neonCyan, alignItems: 'center', justifyContent: 'center' },
+  demoTitle: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1 },
+  demoHint: { color: c.mutedForeground, fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
   detailSection: { fontFamily: 'Inter_700Bold', fontSize: 16, color: c.foreground, marginBottom: 12 },
   instructionRow: { flexDirection: 'row', gap: 12, marginBottom: 10, alignItems: 'flex-start' },
   instNum: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 1 },

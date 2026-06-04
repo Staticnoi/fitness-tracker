@@ -5,21 +5,33 @@ import * as Haptics from 'expo-haptics';
 import colors from '@/constants/colors';
 import type { WorkoutExercise, CompletedSet } from '@/types';
 import { numericRepTarget } from '@/utils/workoutGenerator';
+import { useApp } from '@/context/AppContext';
+import { tr } from '@/utils/i18n';
 
 interface Props {
   item: WorkoutExercise;
   index: number;
+  initialSets?: CompletedSet[];
+  initialNotes?: string;
   onUpdate: (sets: CompletedSet[], notes: string) => void;
 }
 
-export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
+export default function WorkoutExerciseCard({ item, index, initialSets, initialNotes = '', onUpdate }: Props) {
   const c = colors.dark;
+  const { state } = useApp();
+  const language = state.language;
   const targetReps = numericRepTarget(item.reps);
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>(
-    Array.from({ length: item.sets }, () => ({ reps: targetReps, weight: 0 }))
+    Array.from({ length: item.sets }, (_, setIndex) => ({
+      reps: targetReps,
+      weight: initialSets?.[setIndex]?.weight ?? 0,
+      completed: initialSets?.[setIndex]?.completed ?? false,
+    }))
   );
-  const [checkedSets, setCheckedSets] = useState<boolean[]>(Array(item.sets).fill(false));
-  const [notes, setNotes] = useState('');
+  const [checkedSets, setCheckedSets] = useState<boolean[]>(
+    Array.from({ length: item.sets }, (_, setIndex) => initialSets?.[setIndex]?.completed ?? false)
+  );
+  const [notes, setNotes] = useState(initialNotes);
   const [expanded, setExpanded] = useState(index === 0);
 
   const allChecked = checkedSets.every(Boolean);
@@ -63,10 +75,10 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
         <View style={styles.body}>
           {/* Set rows */}
           <View style={styles.setHeader}>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Set</Text>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Target</Text>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Weight (kg)</Text>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Done</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>{tr(language, 'active.set')}</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>{tr(language, 'active.target')}</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>{tr(language, 'active.weight')}</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>{tr(language, 'active.done')}</Text>
           </View>
           {Array.from({ length: item.sets }, (_, i) => (
             <View key={i} style={[styles.setRow, checkedSets[i] && { opacity: 0.6 }]}>
@@ -79,8 +91,8 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
                 keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={c.mutedForeground}
-                value={completedSets[i]?.weight ? String(completedSets[i].weight) : ''}
-                onChangeText={v => updateWeight(i, v)}
+                defaultValue={completedSets[i]?.weight ? String(completedSets[i].weight) : ''}
+                onChangeText={v => updateWeight(i, v.replace(',', '.'))}
               />
               <TouchableOpacity
                 style={[styles.checkBtn, { flex: 0.3, borderColor: checkedSets[i] ? c.success : c.border, backgroundColor: checkedSets[i] ? c.success + '20' : 'transparent' }]}
@@ -93,7 +105,7 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
           {/* Notes */}
           <TextInput
             style={[styles.notesInput, { borderColor: c.border, color: c.foreground }]}
-            placeholder="Notes (optional)..."
+            placeholder={tr(language, 'active.notes')}
             placeholderTextColor={c.mutedForeground}
             value={notes}
             onChangeText={v => { setNotes(v); onUpdate(completedSets, v); }}

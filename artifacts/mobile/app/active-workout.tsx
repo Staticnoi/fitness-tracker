@@ -10,6 +10,7 @@ import NeonButton from '@/components/NeonButton';
 import { useApp } from '@/context/AppContext';
 import type { CompletedSet } from '@/types';
 import { dateKey } from '@/utils/progression';
+import { tr } from '@/utils/i18n';
 
 const c = colors.dark;
 
@@ -23,7 +24,8 @@ export default function ActiveWorkoutScreen() {
   const { dayId } = useLocalSearchParams<{ dayId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { state, addCompletedWorkout, startWorkoutSession, clearWorkoutSession } = useApp();
+  const { state, addCompletedWorkout, startWorkoutSession, updateWorkoutDraft, clearWorkoutSession } = useApp();
+  const language = state.language;
   const [elapsed, setElapsed] = useState(0);
   const [saving, setSaving] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -31,8 +33,9 @@ export default function ActiveWorkoutScreen() {
   const workoutDay = state.workoutPlan?.days.find(d => d.id === dayId)
     ?? state.recoveryChain?.objectives.find(objective => objective.workout.id === dayId)?.workout;
   const sessionStartedAt = dayId ? state.activeWorkoutSessions[dayId]?.startedAt : undefined;
+  const sessionDraft = dayId ? state.activeWorkoutSessions[dayId]?.exercises ?? [] : [];
   const exerciseData = useRef<Array<{ sets: CompletedSet[]; notes: string }>>(
-    workoutDay ? workoutDay.exercises.map(() => ({ sets: [], notes: '' })) : []
+    workoutDay ? workoutDay.exercises.map((_, index) => sessionDraft[index] ?? { sets: [], notes: '' }) : []
   );
 
   useEffect(() => {
@@ -49,9 +52,11 @@ export default function ActiveWorkoutScreen() {
 
   const updateExercise = useCallback((index: number, sets: CompletedSet[], notes: string) => {
     exerciseData.current[index] = { sets, notes };
-  }, []);
+    if (dayId) updateWorkoutDraft(dayId, index, sets, notes);
+  }, [dayId, updateWorkoutDraft]);
 
   const completeWorkout = () => {
+    if (saving) return;
     const alreadyCleared = state.dailyQuests.some(quest => quest.workoutDayId === dayId && quest.dateKey === dateKey() && quest.status === 'completed')
       || state.recoveryChain?.objectives.some(objective => objective.workout.id === dayId && objective.status === 'completed');
     if (alreadyCleared) {
@@ -113,14 +118,14 @@ export default function ActiveWorkoutScreen() {
     <View style={[styles.container, { paddingTop: topPad }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => Alert.alert('Leave Workout?', 'Set entries will be lost, but the quest timer will continue.', [
+        <TouchableOpacity onPress={() => Alert.alert('Leave Workout?', 'Your weights, completed sets, notes, and timer will be saved.', [
           { text: 'Stay', style: 'cancel' },
           { text: 'Leave', style: 'destructive', onPress: () => router.back() },
         ])} style={styles.closeBtn}>
           <Feather name="x" size={20} color={c.foreground} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.workoutName}>ACTIVE QUEST // {workoutDay.name}</Text>
+          <Text style={styles.workoutName}>{tr(language, 'active.quest')} // {workoutDay.name}</Text>
           <Text style={styles.timerText}>{formatTime(elapsed)}</Text>
         </View>
         <View style={[styles.splitBadge, { backgroundColor: c.neonCyan + '15', borderColor: c.neonCyan + '40' }]}>
@@ -132,15 +137,15 @@ export default function ActiveWorkoutScreen() {
       <View style={styles.statsRow}>
         <View style={styles.statChip}>
           <Text style={styles.statVal}>{workoutDay.exercises.length}</Text>
-          <Text style={styles.statLbl}>Exercises</Text>
+          <Text style={styles.statLbl}>{tr(language, 'active.exercises')}</Text>
         </View>
         <View style={styles.statChip}>
           <Text style={styles.statVal}>{workoutDay.exercises.reduce((a, ex) => a + ex.sets, 0)}</Text>
-          <Text style={styles.statLbl}>Total Sets</Text>
+          <Text style={styles.statLbl}>{tr(language, 'active.totalSets')}</Text>
         </View>
         <View style={styles.statChip}>
           <Text style={styles.statVal}>{formatTime(elapsed)}</Text>
-          <Text style={styles.statLbl}>Duration</Text>
+          <Text style={styles.statLbl}>{tr(language, 'active.duration')}</Text>
         </View>
       </View>
 
@@ -149,13 +154,15 @@ export default function ActiveWorkoutScreen() {
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {workoutDay.exercises.map((ex, i) => (
           <WorkoutExerciseCard key={ex.exercise.id + i} item={ex} index={i}
+            initialSets={sessionDraft[i]?.sets}
+            initialNotes={sessionDraft[i]?.notes}
             onUpdate={(sets, notes) => updateExercise(i, sets, notes)} />
         ))}
       </ScrollView>
 
       {/* Complete button */}
       <View style={[styles.footer, { paddingBottom: botPad + 12 }]}>
-        <NeonButton title="CLEAR QUEST" size="lg" onPress={completeWorkout} loading={saving} style={styles.completeBtn} />
+        <NeonButton title={tr(language, 'active.clear')} size="lg" onPress={completeWorkout} loading={saving} style={styles.completeBtn} />
       </View>
     </View>
   );

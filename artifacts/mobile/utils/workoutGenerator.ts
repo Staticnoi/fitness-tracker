@@ -37,7 +37,8 @@ function getFilteredExercises(profile: UserProfile): Exercise[] {
   return EXERCISES.filter(ex => {
     const hasEquip = ex.equipment.some(e =>
       profile.equipment.includes(e) ||
-      profile.equipment.includes('full_gym')
+      profile.equipment.includes('full_gym') ||
+      e === 'none_bodyweight'
     );
     const notAvoided = !ex.avoidFor?.some(h => profile.healthIssues.includes(h));
     return hasEquip && notAvoided;
@@ -62,7 +63,8 @@ function pickExercisesForMuscles(
     return inMuscle && levelOk && !notFocus;
   });
 
-  const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+  const compatibleFallback = allEx.filter(ex => levelMap[ex.difficulty] <= userLevel + 1);
+  const shuffled = [...(filtered.length > 0 ? filtered : compatibleFallback)].sort(() => Math.random() - 0.5);
   let picked = shuffled.slice(0, count);
   if (profile.equipment.includes('full_gym')) {
     const bodyweight = shuffled.find(ex => ex.equipment.includes('none_bodyweight'));

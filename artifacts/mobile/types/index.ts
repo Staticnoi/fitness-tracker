@@ -7,6 +7,7 @@ export type Equipment = 'none_bodyweight' | 'full_gym' | 'barbells' | 'dumbbells
 export type MuscleGroup = 'full_body' | 'chest' | 'back' | 'arms' | 'shoulders' | 'abs' | 'legs' | 'glutes';
 export type Motivation = 'health' | 'weight_loss' | 'appearance' | 'stress_relief' | 'social_support' | 'enjoyment';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type Language = 'en' | 'id';
 
 export interface ReminderSetting {
   day: DayOfWeek;
@@ -46,6 +47,7 @@ export interface Exercise {
   safetyNotes: string;
   avoidFor?: HealthIssue[];
   category: string;
+  demoUrl?: string;
 }
 
 export interface CompletedSet {
@@ -185,10 +187,15 @@ export interface ActiveWorkoutSession {
   workoutDayId: string;
   startedAt: number;
   dateKey: string;
+  exercises: Array<{
+    sets: CompletedSet[];
+    notes: string;
+  }>;
 }
 
 export interface AppState {
   schemaVersion: number;
+  language: Language;
   onboardingCompleted: boolean;
   userProfile: UserProfile | null;
   workoutPlan: WorkoutPlan | null;

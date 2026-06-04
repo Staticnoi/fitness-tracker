@@ -3,7 +3,7 @@ import type {
   ProgressionEvent, ProgressionProfile, RecoveryChain, UserProfile, WorkoutDay, WorkoutPlan,
 } from '@/types';
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 const DAY_NAMES: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 

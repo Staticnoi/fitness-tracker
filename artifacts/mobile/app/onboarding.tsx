@@ -236,14 +236,25 @@ export default function OnboardingScreen() {
   const allBodyParts: Exclude<MuscleGroup, 'full_body'>[] = ['chest', 'back', 'arms', 'shoulders', 'abs', 'legs', 'glutes'];
 
   const canNext = (): boolean => {
+    const validNumber = (value: string, min: number, max: number) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= min && number <= max;
+    };
     if (step === 0) return !!p.gender;
     if (step === 1) return !!p.goal;
     if (step === 4) return !!p.fitnessLevel;
     if (step === 5) return !!p.activityLevel;
-    if (step === 6) return p.age.length > 0;
-    if (step === 7) return p.height.length > 0;
-    if (step === 8) return p.weight.length > 0;
-    if (step === 9) return p.targetWeight.length > 0;
+    if (step === 6) return validNumber(p.age, 13, 100);
+    if (step === 7) return validNumber(p.height, 100, 250);
+    if (step === 8) return validNumber(p.weight, 20, 300);
+    if (step === 9) return validNumber(p.targetWeight, 20, 300);
+    if (step === 13) return p.workoutDays.length === p.workoutsPerWeek;
+    if (step === 14) return p.workoutDays.every(day => {
+      const reminder = p.reminderSettings.find(item => item.day === day);
+      if (!reminder) return false;
+      const match = /^(\d{1,2}):(\d{2})$/.exec(reminder.time);
+      return Boolean(match && Number(match[1]) <= 23 && Number(match[2]) <= 59);
+    });
     return true;
   };
 

@@ -8,6 +8,8 @@ const KEYS = {
   APP_STATE: '@ariseforge/app_state',
 };
 
+let saveQueue: Promise<void> = Promise.resolve();
+
 export function migrateAppState(saved: Partial<AppState>): AppState {
   const completedWorkouts = saved.completedWorkouts ?? [];
   const currentStreak = saved.currentStreak ?? 0;
@@ -33,6 +35,7 @@ export function migrateAppState(saved: Partial<AppState>): AppState {
 
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
+    language: saved.language ?? 'en',
     onboardingCompleted: saved.onboardingCompleted ?? false,
     userProfile: saved.userProfile ?? null,
     workoutPlan,
@@ -49,16 +52,19 @@ export function migrateAppState(saved: Partial<AppState>): AppState {
     systemEvents: saved.systemEvents ?? [],
     lastQuestSyncDate: saved.lastQuestSyncDate ?? dateKey(),
     firedReminderKeys: saved.firedReminderKeys ?? [],
-    activeWorkoutSessions: saved.activeWorkoutSessions ?? {},
+    activeWorkoutSessions: Object.fromEntries(Object.entries(saved.activeWorkoutSessions ?? {}).map(([key, session]) => [
+      key,
+      { ...session, exercises: session.exercises ?? [] },
+    ])),
   };
 }
 
 export async function saveAppState(state: AppState): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEYS.APP_STATE, JSON.stringify(state));
-  } catch (e) {
-    console.warn('Failed to save app state:', e);
-  }
+  const serialized = JSON.stringify(state);
+  saveQueue = saveQueue
+    .then(() => AsyncStorage.setItem(KEYS.APP_STATE, serialized))
+    .catch(e => console.warn('Failed to save app state:', e));
+  await saveQueue;
 }
 
 export async function loadAppState(): Promise<AppState | null> {
@@ -75,6 +81,7 @@ export async function loadAppState(): Promise<AppState | null> {
 
 export async function clearAppState(): Promise<void> {
   try {
+    await saveQueue;
     await AsyncStorage.removeItem(KEYS.APP_STATE);
   } catch (e) {
     console.warn('Failed to clear app state:', e);

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { AppState as NativeAppState } from 'react-native';
-import type { AppState, UserProfile, CompletedWorkout, BodyWeightEntry, WorkoutPlan } from '@/types';
+import type { AppState, UserProfile, CompletedWorkout, BodyWeightEntry, WorkoutPlan, Language } from '@/types';
 import { saveAppState, loadAppState, clearAppState } from '@/utils/storage';
 import { DEFAULT_ACHIEVEMENTS } from '@/constants/achievements';
 import { generateWorkoutPlan, scaleWorkoutPlan } from '@/utils/workoutGenerator';
@@ -9,6 +9,7 @@ import { CURRENT_SCHEMA_VERSION, buildProgression, completeProgression, dateKey,
 
 const INITIAL_STATE: AppState = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
+  language: 'en',
   onboardingCompleted: false,
   userProfile: null,
   workoutPlan: null,
@@ -37,7 +38,9 @@ type Action =
   | { type: 'RESET_ALL' }
   | { type: 'SYNC_QUESTS' }
   | { type: 'START_WORKOUT_SESSION'; payload: { workoutDayId: string; startedAt: number } }
+  | { type: 'UPDATE_WORKOUT_DRAFT'; payload: { workoutDayId: string; exerciseIndex: number; sets: CompletedWorkout['exercises'][number]['sets']; notes: string; startedAt: number } }
   | { type: 'CLEAR_WORKOUT_SESSION'; payload: string }
+  | { type: 'SET_LANGUAGE'; payload: Language }
   | { type: 'UPDATE_PROFILE'; payload: Partial<UserProfile> };
 
 function checkAndUnlockAchievements(state: AppState, newWorkout?: CompletedWorkout): AppState['achievements'] {
@@ -195,13 +198,16 @@ function reducer(state: AppState, action: Action): AppState {
       }
       const plan = generateWorkoutPlan(updatedProfile, state.progression.level);
       const nutrition = calculateNutrition(updatedProfile);
+      const today = dateKey();
+      const retainedQuests = state.dailyQuests.filter(quest => quest.dateKey !== today || quest.status !== 'active');
+      const hasClearedToday = retainedQuests.some(quest => quest.dateKey === today && quest.status === 'completed');
+      const replacementQuest = hasClearedToday ? null : questForDate(plan, today);
       return {
         ...state,
         userProfile: updatedProfile,
         workoutPlan: plan,
         nutritionPlan: nutrition,
-        dailyQuests: [questForDate(plan)].filter(Boolean) as AppState['dailyQuests'],
-        recoveryChain: null,
+        dailyQuests: [...retainedQuests, replacementQuest].filter(Boolean) as AppState['dailyQuests'],
         lastQuestSyncDate: dateKey(),
         activeWorkoutSessions: {},
       };
@@ -218,13 +224,33 @@ function reducer(state: AppState, action: Action): AppState {
             workoutDayId: action.payload.workoutDayId,
             startedAt: action.payload.startedAt,
             dateKey: dateKey(action.payload.startedAt),
+            exercises: [],
           },
         },
       };
+    case 'UPDATE_WORKOUT_DRAFT': {
+      const session = state.activeWorkoutSessions[action.payload.workoutDayId] ?? {
+        workoutDayId: action.payload.workoutDayId,
+        startedAt: action.payload.startedAt,
+        dateKey: dateKey(action.payload.startedAt),
+        exercises: [],
+      };
+      const exercises = [...session.exercises];
+      exercises[action.payload.exerciseIndex] = { sets: action.payload.sets, notes: action.payload.notes };
+      return {
+        ...state,
+        activeWorkoutSessions: {
+          ...state.activeWorkoutSessions,
+          [action.payload.workoutDayId]: { ...session, exercises },
+        },
+      };
+    }
     case 'CLEAR_WORKOUT_SESSION': {
       const { [action.payload]: clearedSession, ...activeWorkoutSessions } = state.activeWorkoutSessions;
       return clearedSession ? { ...state, activeWorkoutSessions } : state;
     }
+    case 'SET_LANGUAGE':
+      return { ...state, language: action.payload };
     case 'RESET_ALL':
       return INITIAL_STATE;
     default:
@@ -239,7 +265,9 @@ interface AppContextValue {
   addBodyWeight: (entry: BodyWeightEntry) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   startWorkoutSession: (workoutDayId: string) => void;
+  updateWorkoutDraft: (workoutDayId: string, exerciseIndex: number, sets: CompletedWorkout['exercises'][number]['sets'], notes: string) => void;
   clearWorkoutSession: (workoutDayId: string) => void;
+  setLanguage: (language: Language) => void;
   resetAll: () => void;
   isLoading: boolean;
 }
@@ -296,13 +324,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_WORKOUT_SESSION', payload: workoutDayId });
   }, []);
 
+  const updateWorkoutDraft = useCallback((workoutDayId: string, exerciseIndex: number, sets: CompletedWorkout['exercises'][number]['sets'], notes: string) => {
+    dispatch({ type: 'UPDATE_WORKOUT_DRAFT', payload: { workoutDayId, exerciseIndex, sets, notes, startedAt: Date.now() } });
+  }, []);
+
+  const setLanguage = useCallback((language: Language) => {
+    dispatch({ type: 'SET_LANGUAGE', payload: language });
+  }, []);
+
   const resetAll = useCallback(async () => {
     await clearAppState();
     dispatch({ type: 'RESET_ALL' });
   }, []);
 
   return (
-    <AppContext.Provider value={{ state, completeOnboarding, addCompletedWorkout, addBodyWeight, updateProfile, startWorkoutSession, clearWorkoutSession, resetAll, isLoading }}>
+    <AppContext.Provider value={{ state, completeOnboarding, addCompletedWorkout, addBodyWeight, updateProfile, startWorkoutSession, updateWorkoutDraft, clearWorkoutSession, setLanguage, resetAll, isLoading }}>
       {children}
     </AppContext.Provider>
   );

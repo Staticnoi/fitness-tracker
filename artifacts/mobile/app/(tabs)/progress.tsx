@@ -187,7 +187,7 @@ export default function ProgressScreen() {
           <TextInput style={styles.modalInput} value={weight} onChangeText={setWeight} keyboardType="numeric" placeholder="kg" placeholderTextColor={c.mutedForeground} autoFocus />
           <View style={styles.modalButtons}><NeonButton title="CANCEL" variant="ghost" onPress={() => setWeightModal(false)} style={{ flex: 1 }} /><NeonButton title="SAVE" onPress={() => {
             const value = Number(weight);
-            if (value < 20 || value > 300) return Alert.alert('Invalid weight', 'Enter a value between 20 and 300 kg.');
+            if (!Number.isFinite(value) || value < 20 || value > 300) return Alert.alert('Invalid weight', 'Enter a value between 20 and 300 kg.');
             addBodyWeight({ date: Date.now(), weight: value });
             setWeight('');
             setWeightModal(false);

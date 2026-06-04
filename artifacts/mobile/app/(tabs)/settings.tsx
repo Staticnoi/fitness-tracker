@@ -7,6 +7,7 @@ import colors from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import NeonButton from '@/components/NeonButton';
 import type { DayOfWeek, Goal } from '@/types';
+import { tr } from '@/utils/i18n';
 
 const c = colors.dark;
 
@@ -33,7 +34,8 @@ function SectionHeader({ title }: { title: string }) {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { state, resetAll, updateProfile } = useApp();
+  const { state, resetAll, updateProfile, setLanguage } = useApp();
+  const language = state.language;
   const router = useRouter();
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -123,7 +125,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 90 }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Player Dossier</Text>
+        <Text style={styles.pageTitle}>{tr(language, 'settings.title')}</Text>
 
         {/* Profile Card */}
         {p && (
@@ -159,33 +161,44 @@ export default function SettingsScreen() {
         </View>
 
         {/* Plan Settings */}
-        <SectionHeader title="PLAN" />
+        <SectionHeader title={tr(language, 'settings.preferences')} />
         <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
-          <SettingRow icon="calendar" label="Workout Days"
+          <View style={[styles.languageRow, { borderColor: c.border }]}>
+            <View style={[styles.rowIcon, { backgroundColor: c.neonCyan + '15' }]}><Feather name="globe" size={18} color={c.neonCyan} /></View>
+            <View style={styles.rowContent}><Text style={[styles.rowLabel, { color: c.foreground }]}>{tr(language, 'settings.language')}</Text><Text style={[styles.rowValue, { color: c.mutedForeground }]}>{tr(language, 'settings.languageHint')}</Text></View>
+            <View style={styles.languageButtons}>
+              {(['en', 'id'] as const).map(item => <TouchableOpacity key={item} onPress={() => setLanguage(item)} style={[styles.languageButton, state.language === item && styles.languageButtonActive]}><Text style={[styles.languageButtonText, state.language === item && styles.languageButtonTextActive]}>{item.toUpperCase()}</Text></TouchableOpacity>)}
+            </View>
+          </View>
+        </View>
+
+        <SectionHeader title={tr(language, 'settings.plan')} />
+        <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
+          <SettingRow icon="calendar" label={tr(language, 'settings.workoutDays')}
             value={p?.workoutDays.map(d => d.charAt(0).toUpperCase()).join(', ')}
             onPress={() => openEditor('days')} />
-          <SettingRow icon="clock" label="Reminders"
+          <SettingRow icon="clock" label={tr(language, 'settings.reminders')}
             value={p?.reminderSettings.length ? `${p.reminderSettings.length} active` : 'None'}
             onPress={() => openEditor('reminders')} />
         </View>
 
         {/* Data */}
-        <SectionHeader title="DATA" />
+        <SectionHeader title={tr(language, 'settings.data')} />
         <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
-          <SettingRow icon="download" label="Export Progress" onPress={handleExport} rightIcon="external-link" />
+          <SettingRow icon="download" label={tr(language, 'settings.export')} onPress={handleExport} rightIcon="external-link" />
         </View>
 
         {/* Danger Zone */}
-        <SectionHeader title="DANGER ZONE" />
+        <SectionHeader title={tr(language, 'settings.danger')} />
         <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
-          <SettingRow icon="refresh-cw" label="Reset Onboarding" onPress={handleResetOnboarding} />
-          <SettingRow icon="trash-2" label="Reset All Progress" onPress={handleReset} destructive />
+          <SettingRow icon="refresh-cw" label={tr(language, 'settings.resetOnboarding')} onPress={handleResetOnboarding} />
+          <SettingRow icon="trash-2" label={tr(language, 'settings.resetAll')} onPress={handleReset} destructive />
         </View>
 
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>Arise Reforged v1.0.0</Text>
-          <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>Your training. Your forge.</Text>
+          <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>{tr(language, 'settings.tagline')}</Text>
         </View>
       </ScrollView>
       <Modal visible={editor !== null} transparent animationType="fade" onRequestClose={() => setEditor(null)}>
@@ -231,6 +244,12 @@ const styles = StyleSheet.create({
   rowContent: { flex: 1, gap: 2 },
   rowLabel: { fontFamily: 'Inter_500Medium', fontSize: 15 },
   rowValue: { fontFamily: 'Inter_400Regular', fontSize: 12 },
+  languageRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, gap: 12 },
+  languageButtons: { flexDirection: 'row', gap: 5 },
+  languageButton: { borderWidth: 1, borderColor: c.border, paddingHorizontal: 9, paddingVertical: 7 },
+  languageButtonActive: { borderColor: c.neonCyan, backgroundColor: c.neonGlow },
+  languageButtonText: { color: c.mutedForeground, fontFamily: 'Inter_700Bold', fontSize: 10 },
+  languageButtonTextActive: { color: c.neonCyan },
   appInfo: { alignItems: 'center', gap: 4, paddingVertical: 20 },
   appInfoText: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', alignItems: 'center', justifyContent: 'center', padding: 20 },
