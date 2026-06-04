@@ -269,6 +269,96 @@ export const EXERCISES: Exercise[] = [
     commonMistakes: ['Landing stiff', 'Not going low enough', 'Arms not helping'],
     safetyNotes: 'Land softly to protect joints.', category: 'legs', avoidFor: ['knee', 'no_jumps'],
   },
+  {
+    id: 'incline_dumbbell_press', name: 'Incline Dumbbell Press', targetMuscle: 'chest', equipment: ['dumbbells'],
+    difficulty: 'intermediate', sets: 4, reps: '8-12', restTime: 90,
+    instructions: ['Set bench to a low incline', 'Press dumbbells above upper chest', 'Lower under control'],
+    commonMistakes: ['Bench angle too steep', 'Elbows flared wide'], safetyNotes: 'Keep shoulders down and back.', category: 'push',
+  },
+  {
+    id: 'chest_press_machine', name: 'Chest Press Machine', targetMuscle: 'chest', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 75,
+    instructions: ['Adjust seat so handles align with chest', 'Press forward', 'Return slowly'],
+    commonMistakes: ['Locking elbows', 'Letting shoulders round'], safetyNotes: 'Use a controlled range.', category: 'push',
+  },
+  {
+    id: 'seated_cable_row', name: 'Seated Cable Row', targetMuscle: 'back', equipment: ['machines'],
+    difficulty: 'beginner', sets: 4, reps: '10-15', restTime: 75,
+    instructions: ['Sit tall with neutral spine', 'Pull handle toward ribs', 'Return with control'],
+    commonMistakes: ['Leaning far backward', 'Shrugging shoulders'], safetyNotes: 'Avoid rounding the lower back.', category: 'pull', avoidFor: ['back_hernia'],
+  },
+  {
+    id: 'face_pull', name: 'Cable Face Pull', targetMuscle: 'shoulders', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '12-20', restTime: 60,
+    instructions: ['Set rope near face height', 'Pull toward forehead', 'Rotate hands apart'],
+    commonMistakes: ['Using excessive weight', 'Shrugging'], safetyNotes: 'Keep movement smooth and light.', category: 'pull',
+  },
+  {
+    id: 'rear_delt_fly', name: 'Rear Delt Fly', targetMuscle: 'shoulders', equipment: ['dumbbells'],
+    difficulty: 'beginner', sets: 3, reps: '12-15', restTime: 60,
+    instructions: ['Hinge forward with flat back', 'Raise dumbbells out wide', 'Lower slowly'],
+    commonMistakes: ['Swinging weights', 'Shrugging'], safetyNotes: 'Use light weights and controlled form.', category: 'pull', avoidFor: ['back_hernia'],
+  },
+  {
+    id: 'arnold_press', name: 'Arnold Press', targetMuscle: 'shoulders', equipment: ['dumbbells'],
+    difficulty: 'intermediate', sets: 3, reps: '8-12', restTime: 75,
+    instructions: ['Start palms facing you', 'Rotate while pressing overhead', 'Reverse under control'],
+    commonMistakes: ['Arching lower back', 'Rushing rotation'], safetyNotes: 'Stop if shoulder pain occurs.', category: 'push', avoidFor: ['arms_shoulders'],
+  },
+  {
+    id: 'cable_tricep_pushdown', name: 'Cable Tricep Pushdown', targetMuscle: 'arms', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 60,
+    instructions: ['Pin elbows at sides', 'Extend arms downward', 'Return without moving shoulders'],
+    commonMistakes: ['Elbows drifting', 'Leaning into cable'], safetyNotes: 'Keep wrists neutral.', category: 'push',
+  },
+  {
+    id: 'preacher_curl', name: 'Preacher Curl', targetMuscle: 'arms', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 60,
+    instructions: ['Set upper arms on pad', 'Curl toward shoulders', 'Lower without locking elbows'],
+    commonMistakes: ['Lifting arms from pad', 'Dropping weight'], safetyNotes: 'Avoid forceful elbow lockout.', category: 'pull',
+  },
+  {
+    id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', targetMuscle: 'legs', equipment: ['dumbbells'],
+    difficulty: 'intermediate', sets: 3, reps: '8-12 each', restTime: 90,
+    instructions: ['Place rear foot on bench', 'Lower front leg under control', 'Drive through front foot'],
+    commonMistakes: ['Front knee collapsing inward', 'Losing balance'], safetyNotes: 'Start without weight.', category: 'legs', avoidFor: ['knee'],
+  },
+  {
+    id: 'leg_extension', name: 'Leg Extension', targetMuscle: 'legs', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 60,
+    instructions: ['Align knee with machine pivot', 'Extend legs', 'Lower slowly'],
+    commonMistakes: ['Kicking weight', 'Using excessive load'], safetyNotes: 'Use pain-free range only.', category: 'legs', avoidFor: ['knee'],
+  },
+  {
+    id: 'seated_leg_curl', name: 'Seated Leg Curl', targetMuscle: 'legs', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 60,
+    instructions: ['Adjust pad above ankles', 'Curl heels downward', 'Return slowly'],
+    commonMistakes: ['Lifting hips', 'Rushing return'], safetyNotes: 'Keep hips against the seat.', category: 'legs',
+  },
+  {
+    id: 'standing_calf_raise', name: 'Standing Calf Raise', targetMuscle: 'legs', equipment: ['machines'],
+    difficulty: 'beginner', sets: 4, reps: '12-20', restTime: 60,
+    instructions: ['Place balls of feet on platform', 'Rise onto toes', 'Lower into a gentle stretch'],
+    commonMistakes: ['Bouncing', 'Rolling ankles'], safetyNotes: 'Use support for balance.', category: 'legs',
+  },
+  {
+    id: 'cable_glute_kickback', name: 'Cable Glute Kickback', targetMuscle: 'glutes', equipment: ['machines'],
+    difficulty: 'beginner', sets: 3, reps: '12-15 each', restTime: 60,
+    instructions: ['Attach ankle strap', 'Drive leg backward', 'Squeeze glute and return'],
+    commonMistakes: ['Arching lower back', 'Rotating hips'], safetyNotes: 'Use a controlled range.', category: 'legs',
+  },
+  {
+    id: 'kb_deadlift', name: 'Kettlebell Deadlift', targetMuscle: 'glutes', equipment: ['kettlebells'],
+    difficulty: 'beginner', sets: 3, reps: '10-15', restTime: 75,
+    instructions: ['Stand over kettlebell', 'Hinge and grip handle', 'Drive hips forward to stand'],
+    commonMistakes: ['Squatting too low', 'Rounding back'], safetyNotes: 'Keep spine neutral.', category: 'legs', avoidFor: ['back_hernia'],
+  },
+  {
+    id: 'farmers_carry', name: 'Farmer Carry', targetMuscle: 'full_body', equipment: ['dumbbells', 'kettlebells'],
+    difficulty: 'beginner', sets: 3, reps: '30-60s', restTime: 75,
+    instructions: ['Hold weights at sides', 'Stand tall and brace core', 'Walk with controlled steps'],
+    commonMistakes: ['Leaning sideways', 'Shrugging shoulders'], safetyNotes: 'Use a clear walking path.', category: 'full_body',
+  },
 ];
 
 export const getExercisesForProfile = (
@@ -278,7 +368,7 @@ export const getExercisesForProfile = (
   fitnessLevel: string
 ): Exercise[] => {
   return EXERCISES.filter(ex => {
-    const hasEquipment = ex.equipment.some(e => equipment.includes(e));
+    const hasEquipment = equipment.includes('full_gym') || ex.equipment.some(e => equipment.includes(e));
     const isInFocus = focusAreas.includes('full_body') || focusAreas.includes(ex.targetMuscle as string);
     const notAvoided = !ex.avoidFor?.some(h => healthIssues.includes(h));
     const levelOk = fitnessLevel === 'advanced' || ex.difficulty !== 'advanced' ||

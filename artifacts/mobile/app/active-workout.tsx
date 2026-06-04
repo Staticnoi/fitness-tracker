@@ -23,21 +23,29 @@ export default function ActiveWorkoutScreen() {
   const { dayId } = useLocalSearchParams<{ dayId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { state, addCompletedWorkout } = useApp();
+  const { state, addCompletedWorkout, startWorkoutSession, clearWorkoutSession } = useApp();
   const [elapsed, setElapsed] = useState(0);
   const [saving, setSaving] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const workoutDay = state.workoutPlan?.days.find(d => d.id === dayId)
     ?? state.recoveryChain?.objectives.find(objective => objective.workout.id === dayId)?.workout;
+  const sessionStartedAt = dayId ? state.activeWorkoutSessions[dayId]?.startedAt : undefined;
   const exerciseData = useRef<Array<{ sets: CompletedSet[]; notes: string }>>(
     workoutDay ? workoutDay.exercises.map(() => ({ sets: [], notes: '' })) : []
   );
 
   useEffect(() => {
-    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    if (dayId && !sessionStartedAt) startWorkoutSession(dayId);
+  }, [dayId, sessionStartedAt, startWorkoutSession]);
+
+  useEffect(() => {
+    if (!sessionStartedAt) return;
+    const updateElapsed = () => setElapsed(Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000)));
+    updateElapsed();
+    timerRef.current = setInterval(updateElapsed, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
+  }, [sessionStartedAt]);
 
   const updateExercise = useCallback((index: number, sets: CompletedSet[], notes: string) => {
     exerciseData.current[index] = { sets, notes };
@@ -47,6 +55,7 @@ export default function ActiveWorkoutScreen() {
     const alreadyCleared = state.dailyQuests.some(quest => quest.workoutDayId === dayId && quest.dateKey === dateKey() && quest.status === 'completed')
       || state.recoveryChain?.objectives.some(objective => objective.workout.id === dayId && objective.status === 'completed');
     if (alreadyCleared) {
+      if (dayId) clearWorkoutSession(dayId);
       Alert.alert('Quest Already Cleared', 'This quest has already granted its progression reward.');
       return;
     }
@@ -104,7 +113,7 @@ export default function ActiveWorkoutScreen() {
     <View style={[styles.container, { paddingTop: topPad }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => Alert.alert('Leave Workout?', 'Progress will be lost.', [
+        <TouchableOpacity onPress={() => Alert.alert('Leave Workout?', 'Set entries will be lost, but the quest timer will continue.', [
           { text: 'Stay', style: 'cancel' },
           { text: 'Leave', style: 'destructive', onPress: () => router.back() },
         ])} style={styles.closeBtn}>

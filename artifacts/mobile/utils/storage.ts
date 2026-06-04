@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AppState } from '@/types';
 import { DEFAULT_ACHIEVEMENTS } from '@/constants/achievements';
 import { CURRENT_SCHEMA_VERSION, buildProgression, dateKey, questForDate } from '@/utils/progression';
+import { scaleWorkoutPlan } from '@/utils/workoutGenerator';
 
 const KEYS = {
   APP_STATE: '@ariseforge/app_state',
@@ -20,11 +21,21 @@ export function migrateAppState(saved: Partial<AppState>): AppState {
     ? saved.progression
     : buildProgression(completedWorkouts, currentStreak, recoveryParts);
 
+  const workoutPlan = saved.workoutPlan && saved.userProfile
+    ? scaleWorkoutPlan(saved.workoutPlan, saved.userProfile, progression.level)
+    : saved.workoutPlan ?? null;
+  const dailyQuests = (saved.dailyQuests ?? [questForDate(workoutPlan)].filter(Boolean) as AppState['dailyQuests']).map(quest => {
+    const workout = workoutPlan?.days.find(day => day.id === quest.workoutDayId);
+    return workout
+      ? { ...quest, prescribedSets: workout.exercises.reduce((sum, exercise) => sum + exercise.sets, 0) }
+      : quest;
+  });
+
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     onboardingCompleted: saved.onboardingCompleted ?? false,
     userProfile: saved.userProfile ?? null,
-    workoutPlan: saved.workoutPlan ?? null,
+    workoutPlan,
     completedWorkouts,
     achievements,
     bodyWeightHistory: saved.bodyWeightHistory ?? [],
@@ -33,11 +44,12 @@ export function migrateAppState(saved: Partial<AppState>): AppState {
     lastWorkoutDate: saved.lastWorkoutDate ?? null,
     nutritionPlan: saved.nutritionPlan ?? null,
     progression,
-    dailyQuests: saved.dailyQuests ?? [questForDate(saved.workoutPlan ?? null)].filter(Boolean) as AppState['dailyQuests'],
+    dailyQuests,
     recoveryChain: saved.recoveryChain ?? null,
     systemEvents: saved.systemEvents ?? [],
     lastQuestSyncDate: saved.lastQuestSyncDate ?? dateKey(),
     firedReminderKeys: saved.firedReminderKeys ?? [],
+    activeWorkoutSessions: saved.activeWorkoutSessions ?? {},
   };
 }
 

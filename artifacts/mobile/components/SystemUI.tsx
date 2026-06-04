@@ -18,10 +18,11 @@ export function SystemPanel({ children, style, active = false }: { children: Rea
 }
 
 export function RankBadge({ rank, size = 68 }: { rank: PlayerRank; size?: number }) {
+  const rankFontScale = rank.length === 1 ? 0.42 : rank.length === 2 ? 0.32 : 0.25;
   return (
-    <View style={[styles.rank, { width: size, height: size }]}>
-      <Text style={[styles.rankLabel, { fontSize: size * 0.16 }]}>RANK</Text>
-      <Text style={[styles.rankValue, { fontSize: size * 0.48 }]}>{rank}</Text>
+    <View style={[styles.rank, { width: size, height: size * 0.78 }]}>
+      <Text style={[styles.rankLabel, { fontSize: size * 0.12 }]}>CURRENT RANK</Text>
+      <Text style={[styles.rankValue, { fontSize: size * rankFontScale }]}>{rank}</Text>
     </View>
   );
 }
@@ -72,9 +73,9 @@ const styles = StyleSheet.create({
   panelActive: { borderColor: c.neonCyan, shadowColor: c.neonCyan, shadowOpacity: 0.25, shadowRadius: 12, elevation: 4 },
   cornerTop: { position: 'absolute', right: -8, top: -8, width: 24, height: 24, borderLeftWidth: 1, borderLeftColor: c.neonCyan, transform: [{ rotate: '45deg' }] },
   cornerBottom: { position: 'absolute', left: -8, bottom: -8, width: 24, height: 24, borderRightWidth: 1, borderRightColor: c.neonCyan, transform: [{ rotate: '45deg' }] },
-  rank: { borderWidth: 1, borderColor: c.neonCyan, backgroundColor: c.neonGlow, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '45deg' }] },
-  rankLabel: { color: c.mutedForeground, fontFamily: 'Inter_700Bold', letterSpacing: 1, transform: [{ rotate: '-45deg' }] },
-  rankValue: { color: c.neonCyan, fontFamily: 'Inter_700Bold', lineHeight: 34, transform: [{ rotate: '-45deg' }] },
+  rank: { borderWidth: 1, borderColor: c.neonCyan, backgroundColor: c.neonGlow, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, gap: 1 },
+  rankLabel: { color: c.mutedForeground, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, textAlign: 'center' },
+  rankValue: { color: c.neonCyan, fontFamily: 'Inter_700Bold', lineHeight: 32, textAlign: 'center' },
   xpWrap: { gap: 7 },
   xpLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   micro: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2 },

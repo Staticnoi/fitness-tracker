@@ -125,7 +125,7 @@ export interface NutritionPlan {
   }>;
 }
 
-export type PlayerRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type PlayerRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S' | 'SS' | 'SSS';
 export type QuestStatus = 'active' | 'completed' | 'missed';
 export type ProgressionEventType = 'quest_complete' | 'quest_failed' | 'xp_gain' | 'level_up' | 'rank_up' | 'record_unlocked' | 'recovery_complete' | 'reminder';
 
@@ -181,6 +181,12 @@ export interface ProgressionEvent {
   createdAt: number;
 }
 
+export interface ActiveWorkoutSession {
+  workoutDayId: string;
+  startedAt: number;
+  dateKey: string;
+}
+
 export interface AppState {
   schemaVersion: number;
   onboardingCompleted: boolean;
@@ -199,4 +205,5 @@ export interface AppState {
   systemEvents: ProgressionEvent[];
   lastQuestSyncDate: string;
   firedReminderKeys: string[];
+  activeWorkoutSessions: Record<string, ActiveWorkoutSession>;
 }

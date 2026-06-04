@@ -31,12 +31,12 @@ export default function CommandCenterScreen() {
     <View style={[styles.container, { paddingTop: Platform.OS === 'web' ? 67 : insets.top }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: (Platform.OS === 'web' ? 34 : insets.bottom) + 90 }]}>
         <View style={styles.header}>
-          <View><Text style={styles.eyebrow}>ARISEFORGE // COMMAND CENTER</Text><Text style={styles.title}>PLAYER STATUS</Text></View>
-          <RankBadge rank={state.progression.rank} />
+          <View style={styles.headerCopy}><Text style={styles.eyebrow}>SYSTEM // COMMAND CENTER</Text><Text style={styles.title}>ARISE REFORGED</Text><Text style={styles.headerMeta}>PLAYER STATUS // LEVEL {state.progression.level}</Text></View>
+          <RankBadge rank={state.progression.rank} size={76} />
         </View>
         <SystemPanel active style={styles.gap}>
           <View style={styles.playerRow}>
-            <View><Text style={styles.micro}>REGISTERED PLAYER</Text><Text style={styles.goal}>{state.userProfile?.goal.replaceAll('_', ' ').toUpperCase()}</Text></View>
+            <View style={styles.playerIdentity}><Text style={styles.micro}>REGISTERED PLAYER</Text><Text style={styles.goal}>{state.userProfile?.goal.replaceAll('_', ' ').toUpperCase()}</Text></View>
             <View style={styles.streak}><Text style={styles.streakValue}>{state.currentStreak}</Text><Text style={styles.micro}>STREAK</Text></View>
           </View>
           <XpBar xp={state.progression.xp} level={state.progression.level} />
@@ -106,11 +106,14 @@ export default function CommandCenterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scroll: { paddingHorizontal: 18, gap: 12 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 22, paddingRight: 10 },
-  eyebrow: { color: c.neonCyan, fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.7 },
-  title: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: 2, marginTop: 5 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 18, paddingTop: 20, paddingBottom: 26 },
+  headerCopy: { flex: 1, gap: 4 },
+  eyebrow: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 2.2 },
+  title: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 24, letterSpacing: 1.2 },
+  headerMeta: { color: c.mutedForeground, fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 1.2 },
   gap: { gap: 16 },
   playerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  playerIdentity: { flex: 1, paddingRight: 12 },
   micro: { color: c.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
   goal: { color: c.foreground, fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 5 },
   streak: { alignItems: 'center', paddingLeft: 18, borderLeftWidth: 1, borderLeftColor: c.border },

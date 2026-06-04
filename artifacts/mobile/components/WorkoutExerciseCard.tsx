@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import colors from '@/constants/colors';
 import type { WorkoutExercise, CompletedSet } from '@/types';
+import { numericRepTarget } from '@/utils/workoutGenerator';
 
 interface Props {
   item: WorkoutExercise;
@@ -13,8 +14,9 @@ interface Props {
 
 export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
   const c = colors.dark;
+  const targetReps = numericRepTarget(item.reps);
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>(
-    Array.from({ length: item.sets }, () => ({ reps: 0, weight: 0 }))
+    Array.from({ length: item.sets }, () => ({ reps: targetReps, weight: 0 }))
   );
   const [checkedSets, setCheckedSets] = useState<boolean[]>(Array(item.sets).fill(false));
   const [notes, setNotes] = useState('');
@@ -32,9 +34,9 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
     onUpdate(sets, notes);
   };
 
-  const updateSet = (i: number, field: 'reps' | 'weight', val: string) => {
+  const updateWeight = (i: number, val: string) => {
     const updated = [...completedSets];
-    updated[i] = { ...updated[i], [field]: parseInt(val) || 0 };
+    updated[i] = { ...updated[i], weight: Number.parseFloat(val) || 0 };
     setCompletedSets(updated);
     onUpdate(updated, notes);
   };
@@ -51,7 +53,7 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
         <View style={styles.exerciseInfo}>
           <Text style={[styles.name, { color: allChecked ? c.success : c.foreground }]}>{item.exercise.name}</Text>
           <Text style={[styles.meta, { color: c.mutedForeground }]}>
-            {item.exercise.targetMuscle.replace('_', ' ')} | {item.sets} sets x {item.reps} reps | {item.restTime}s rest
+            {item.exercise.targetMuscle.replace('_', ' ')} | {item.sets} sets x {item.reps} prescribed | {item.restTime}s rest
           </Text>
         </View>
         <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.mutedForeground} />
@@ -62,28 +64,23 @@ export default function WorkoutExerciseCard({ item, index, onUpdate }: Props) {
           {/* Set rows */}
           <View style={styles.setHeader}>
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Set</Text>
-            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Reps</Text>
+            <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Target</Text>
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 1 }]}>Weight (kg)</Text>
             <Text style={[styles.setLabel, { color: c.mutedForeground, flex: 0.3 }]}>Done</Text>
           </View>
           {Array.from({ length: item.sets }, (_, i) => (
             <View key={i} style={[styles.setRow, checkedSets[i] && { opacity: 0.6 }]}>
               <Text style={[styles.setNum, { color: c.neonCyan, flex: 0.3 }]}>{i + 1}</Text>
+              <View style={[styles.target, { flex: 1, borderColor: c.neonCyan + '60' }]}>
+                <Text style={styles.targetText}>{item.reps}</Text>
+              </View>
               <TextInput
                 style={[styles.input, { flex: 1, borderColor: c.border, color: c.foreground }]}
-                keyboardType="numeric"
-                placeholder={item.reps.split('-')[0]}
-                placeholderTextColor={c.mutedForeground}
-                value={completedSets[i]?.reps ? String(completedSets[i].reps) : ''}
-                onChangeText={v => updateSet(i, 'reps', v)}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1, borderColor: c.border, color: c.foreground }]}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={c.mutedForeground}
                 value={completedSets[i]?.weight ? String(completedSets[i].weight) : ''}
-                onChangeText={v => updateSet(i, 'weight', v)}
+                onChangeText={v => updateWeight(i, v)}
               />
               <TouchableOpacity
                 style={[styles.checkBtn, { flex: 0.3, borderColor: checkedSets[i] ? c.success : c.border, backgroundColor: checkedSets[i] ? c.success + '20' : 'transparent' }]}
@@ -129,6 +126,8 @@ const styles = StyleSheet.create({
   setRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   setNum: { fontFamily: 'Inter_600SemiBold', fontSize: 14, textAlign: 'center' },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontFamily: 'Inter_400Regular', fontSize: 14, textAlign: 'center' },
+  target: { minHeight: 36, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.dark.neonCyan + '08' },
+  targetText: { color: colors.dark.neonCyan, fontFamily: 'Inter_700Bold', fontSize: 14 },
   checkBtn: { width: 36, height: 36, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   notesInput: { borderWidth: 1, borderRadius: 8, padding: 10, fontFamily: 'Inter_400Regular', fontSize: 13, marginTop: 4, minHeight: 40 },
   tipsRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start', paddingTop: 4 },

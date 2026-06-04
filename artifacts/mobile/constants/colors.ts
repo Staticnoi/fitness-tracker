@@ -18,7 +18,7 @@ const colors = {
     destructiveForeground: "#ffffff",
     border: "#16496c",
     input: "#16496c",
-    // AriseForge extras
+    // Arise Reforged extras
     neonCyan: "#00e5ff",
     neonGlow: "rgba(0,229,255,0.12)",
     neonGlowStrong: "rgba(0,229,255,0.25)",

@@ -90,7 +90,7 @@ export default function SettingsScreen() {
         recoveryChain: state.recoveryChain,
         systemEvents: state.systemEvents,
       }, null, 2);
-      await Share.share({ message: data, title: 'AriseForge Progress Export' });
+      await Share.share({ message: data, title: 'Arise Reforged Progress Export' });
     } catch { /* ignore */ }
   };
 
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
 
         {/* App Info */}
         <View style={styles.appInfo}>
-          <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>AriseForge v1.0.0</Text>
+          <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>Arise Reforged v1.0.0</Text>
           <Text style={[styles.appInfoText, { color: c.mutedForeground }]}>Your training. Your forge.</Text>
         </View>
       </ScrollView>

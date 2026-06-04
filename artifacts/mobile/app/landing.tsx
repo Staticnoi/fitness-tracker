@@ -12,9 +12,9 @@ const c = colors.dark;
 
 const FEATURES = [
   { icon: 'zap', title: 'Daily Quests', desc: 'Scheduled training objectives assigned to your profile', color: '#00e5ff' },
-  { icon: 'book-open', title: 'Exercise Guide', desc: '30+ exercises with form cues and tips', color: '#00ff7f' },
+  { icon: 'book-open', title: 'Exercise Guide', desc: '50+ exercises with form cues and safety notes', color: '#00ff7f' },
   { icon: 'pie-chart', title: 'Nutrition Plan', desc: 'Personalized macros and meal suggestions', color: '#ffb800' },
-  { icon: 'cpu', title: 'Workout Generator', desc: 'AI-powered plans based on your profile', color: '#e040fb' },
+  { icon: 'cpu', title: 'Workout Generator', desc: 'Adaptive plans based on your profile and rank', color: '#e040fb' },
   { icon: 'activity', title: 'Smart Tracking', desc: 'Sets, reps, weight, and body progress', color: '#ff6b35' },
   { icon: 'award', title: 'System Records', desc: 'Earn XP, unlock records, and advance your rank', color: '#ffd700' },
   { icon: 'clock', title: 'History', desc: 'Every workout logged and visualized', color: '#00e5ff' },
@@ -73,13 +73,13 @@ export default function LandingScreen() {
           </View>
           <Text style={styles.heroTitle}>
             <Text style={{ color: c.neonCyan }}>ARISE</Text>
-            {'\n'}FORGE
+            {'\n'}REFORGED
           </Text>
           <Text style={styles.heroSub}>
             Enter a progression-driven training protocol built around quests, ranks, and measurable growth.
           </Text>
           <View style={styles.statsRow}>
-            {[['12', 'Splits'], ['50+', 'Exercises'], ['∞', 'Progress']].map(([val, lbl]) => (
+            {[['3', 'Splits'], ['50+', 'Exercises'], ['MAX', 'Progress']].map(([val, lbl]) => (
               <View key={lbl} style={styles.statItem}>
                 <Text style={styles.statVal}>{val}</Text>
                 <Text style={styles.statLbl}>{lbl}</Text>

@@ -3,7 +3,7 @@ import type {
   ProgressionEvent, ProgressionProfile, RecoveryChain, UserProfile, WorkoutDay, WorkoutPlan,
 } from '@/types';
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 const DAY_NAMES: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -24,6 +24,8 @@ function addDays(key: string, days: number): string {
 }
 
 export function rankForLevel(level: number): PlayerRank {
+  if (level >= 90) return 'SSS';
+  if (level >= 70) return 'SS';
   if (level >= 50) return 'S';
   if (level >= 35) return 'A';
   if (level >= 20) return 'B';
@@ -134,6 +136,10 @@ export function syncQuests(state: AppState): AppState {
   let recoveryChain = state.recoveryChain;
   let events = state.systemEvents;
   let firedReminderKeys = state.firedReminderKeys.filter(key => key >= addDays(today, -7));
+  const activeWorkoutSessions = Object.fromEntries(
+    Object.entries(state.activeWorkoutSessions).filter(([, session]) => session.dateKey >= today)
+  );
+  if (Object.keys(activeWorkoutSessions).length !== Object.keys(state.activeWorkoutSessions).length) changed = true;
   const quests = [...state.dailyQuests];
   let cursor = state.lastQuestSyncDate;
   while (cursor < today) {
@@ -173,7 +179,7 @@ export function syncQuests(state: AppState): AppState {
     }
   }
   if (!changed) return state;
-  return { ...state, currentStreak: streak, dailyQuests: evaluatedQuests, recoveryChain, systemEvents: events, firedReminderKeys, lastQuestSyncDate: today, progression: { ...state.progression, stats: deriveStats(state.completedWorkouts, streak, state.progression.completedRecoveryParts) } };
+  return { ...state, currentStreak: streak, dailyQuests: evaluatedQuests, recoveryChain, systemEvents: events, firedReminderKeys, activeWorkoutSessions, lastQuestSyncDate: today, progression: { ...state.progression, stats: deriveStats(state.completedWorkouts, streak, state.progression.completedRecoveryParts) } };
 }
 
 export function completeProgression(state: AppState, workout: CompletedWorkout): AppState {

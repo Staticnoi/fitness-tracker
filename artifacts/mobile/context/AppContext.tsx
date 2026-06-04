@@ -3,7 +3,7 @@ import { AppState as NativeAppState } from 'react-native';
 import type { AppState, UserProfile, CompletedWorkout, BodyWeightEntry, WorkoutPlan } from '@/types';
 import { saveAppState, loadAppState, clearAppState } from '@/utils/storage';
 import { DEFAULT_ACHIEVEMENTS } from '@/constants/achievements';
-import { generateWorkoutPlan } from '@/utils/workoutGenerator';
+import { generateWorkoutPlan, scaleWorkoutPlan } from '@/utils/workoutGenerator';
 import { calculateNutrition } from '@/utils/nutrition';
 import { CURRENT_SCHEMA_VERSION, buildProgression, completeProgression, dateKey, questForDate, syncQuests } from '@/utils/progression';
 
@@ -25,6 +25,7 @@ const INITIAL_STATE: AppState = {
   systemEvents: [],
   lastQuestSyncDate: dateKey(),
   firedReminderKeys: [],
+  activeWorkoutSessions: {},
 };
 
 type Action =
@@ -35,6 +36,8 @@ type Action =
   | { type: 'ADD_BODY_WEIGHT'; payload: BodyWeightEntry }
   | { type: 'RESET_ALL' }
   | { type: 'SYNC_QUESTS' }
+  | { type: 'START_WORKOUT_SESSION'; payload: { workoutDayId: string; startedAt: number } }
+  | { type: 'CLEAR_WORKOUT_SESSION'; payload: string }
   | { type: 'UPDATE_PROFILE'; payload: Partial<UserProfile> };
 
 function checkAndUnlockAchievements(state: AppState, newWorkout?: CompletedWorkout): AppState['achievements'] {
@@ -131,6 +134,7 @@ function reducer(state: AppState, action: Action): AppState {
         systemEvents: [],
         lastQuestSyncDate: dateKey(),
         firedReminderKeys: [],
+        activeWorkoutSessions: {},
       };
     }
     case 'SET_WORKOUT_PLAN':
@@ -153,6 +157,9 @@ function reducer(state: AppState, action: Action): AppState {
         longestStreak: Math.max(streakResult.longest, state.longestStreak),
         lastWorkoutDate: isActiveQuest || isActiveRecovery ? action.payload.date : state.lastWorkoutDate,
       }, action.payload);
+      const scaledPlan = progressed.workoutPlan && progressed.userProfile
+        ? scaleWorkoutPlan(progressed.workoutPlan, progressed.userProfile, progressed.progression.level)
+        : progressed.workoutPlan;
       const achievements = checkAndUnlockAchievements(progressed, action.payload);
       const newlyUnlocked = achievements.filter(item => item.unlocked && !state.achievements.find(previous => previous.id === item.id)?.unlocked);
       const recordEvents = newlyUnlocked.map(item => ({
@@ -162,7 +169,8 @@ function reducer(state: AppState, action: Action): AppState {
         message: item.name,
         createdAt: Date.now(),
       }));
-      return { ...progressed, achievements, systemEvents: [...recordEvents, ...progressed.systemEvents].slice(0, 30) };
+      const { [action.payload.workoutDayId]: completedSession, ...activeWorkoutSessions } = progressed.activeWorkoutSessions;
+      return { ...progressed, workoutPlan: scaledPlan, activeWorkoutSessions, achievements, systemEvents: [...recordEvents, ...progressed.systemEvents].slice(0, 30) };
     }
     case 'ADD_BODY_WEIGHT': {
       const newHistory = [...state.bodyWeightHistory, action.payload];
@@ -185,7 +193,7 @@ function reducer(state: AppState, action: Action): AppState {
       if (changedKeys.every(key => key === 'reminderSettings')) {
         return { ...state, userProfile: updatedProfile };
       }
-      const plan = generateWorkoutPlan(updatedProfile);
+      const plan = generateWorkoutPlan(updatedProfile, state.progression.level);
       const nutrition = calculateNutrition(updatedProfile);
       return {
         ...state,
@@ -195,10 +203,28 @@ function reducer(state: AppState, action: Action): AppState {
         dailyQuests: [questForDate(plan)].filter(Boolean) as AppState['dailyQuests'],
         recoveryChain: null,
         lastQuestSyncDate: dateKey(),
+        activeWorkoutSessions: {},
       };
     }
     case 'SYNC_QUESTS':
       return syncQuests(state);
+    case 'START_WORKOUT_SESSION':
+      if (state.activeWorkoutSessions[action.payload.workoutDayId]) return state;
+      return {
+        ...state,
+        activeWorkoutSessions: {
+          ...state.activeWorkoutSessions,
+          [action.payload.workoutDayId]: {
+            workoutDayId: action.payload.workoutDayId,
+            startedAt: action.payload.startedAt,
+            dateKey: dateKey(action.payload.startedAt),
+          },
+        },
+      };
+    case 'CLEAR_WORKOUT_SESSION': {
+      const { [action.payload]: clearedSession, ...activeWorkoutSessions } = state.activeWorkoutSessions;
+      return clearedSession ? { ...state, activeWorkoutSessions } : state;
+    }
     case 'RESET_ALL':
       return INITIAL_STATE;
     default:
@@ -212,6 +238,8 @@ interface AppContextValue {
   addCompletedWorkout: (workout: CompletedWorkout) => void;
   addBodyWeight: (entry: BodyWeightEntry) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  startWorkoutSession: (workoutDayId: string) => void;
+  clearWorkoutSession: (workoutDayId: string) => void;
   resetAll: () => void;
   isLoading: boolean;
 }
@@ -260,13 +288,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_PROFILE', payload: updates });
   }, []);
 
+  const startWorkoutSession = useCallback((workoutDayId: string) => {
+    dispatch({ type: 'START_WORKOUT_SESSION', payload: { workoutDayId, startedAt: Date.now() } });
+  }, []);
+
+  const clearWorkoutSession = useCallback((workoutDayId: string) => {
+    dispatch({ type: 'CLEAR_WORKOUT_SESSION', payload: workoutDayId });
+  }, []);
+
   const resetAll = useCallback(async () => {
     await clearAppState();
     dispatch({ type: 'RESET_ALL' });
   }, []);
 
   return (
-    <AppContext.Provider value={{ state, completeOnboarding, addCompletedWorkout, addBodyWeight, updateProfile, resetAll, isLoading }}>
+    <AppContext.Provider value={{ state, completeOnboarding, addCompletedWorkout, addBodyWeight, updateProfile, startWorkoutSession, clearWorkoutSession, resetAll, isLoading }}>
       {children}
     </AppContext.Provider>
   );

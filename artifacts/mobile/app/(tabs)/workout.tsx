@@ -66,7 +66,7 @@ export default function WorkoutScreen() {
                   </View>
                   <View style={styles.exInfo}>
                     <Text style={styles.exName}>{ex.exercise.name}</Text>
-                    <Text style={styles.exMeta}>{ex.sets} sets × {ex.reps} reps • {ex.restTime}s rest</Text>
+                    <Text style={styles.exMeta}>{ex.sets} sets x {ex.reps} prescribed | {ex.restTime}s rest</Text>
                   </View>
                   <View style={[styles.muscleBadge, { backgroundColor: c.secondary }]}>
                     <Text style={[styles.muscleText, { color: c.mutedForeground }]}>
@@ -80,7 +80,7 @@ export default function WorkoutScreen() {
         ) : (
           <View style={[styles.restCard, { backgroundColor: c.card, borderColor: c.border }]}>
             <Feather name="moon" size={24} color={c.mutedForeground} />
-            <Text style={styles.restText}>Rest Day — Recovery is part of training</Text>
+            <Text style={styles.restText}>Rest Day | Recovery is part of training</Text>
           </View>
         )}
 
