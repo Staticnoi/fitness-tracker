@@ -29,6 +29,13 @@
           "origin": "https://replit.com/"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Arise Reforged to scan saved workout frames for form feedback.",
+          "cameraPermission": "Allow Arise Reforged to capture workout frames for form feedback."
+        }
+      ],
       "expo-font",
       "expo-web-browser"
     ],

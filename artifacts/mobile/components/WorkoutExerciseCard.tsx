@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -13,10 +13,13 @@ interface Props {
   index: number;
   initialSets?: CompletedSet[];
   initialNotes?: string;
+  syncedSets?: CompletedSet[];
+  syncedNotes?: string;
+  syncRevision?: number;
   onUpdate: (sets: CompletedSet[], notes: string) => void;
 }
 
-export default function WorkoutExerciseCard({ item, index, initialSets, initialNotes = '', onUpdate }: Props) {
+export default function WorkoutExerciseCard({ item, index, initialSets, initialNotes = '', syncedSets, syncedNotes, syncRevision = 0, onUpdate }: Props) {
   const c = colors.dark;
   const { state } = useApp();
   const language = state.language;
@@ -35,6 +38,17 @@ export default function WorkoutExerciseCard({ item, index, initialSets, initialN
   const [expanded, setExpanded] = useState(index === 0);
 
   const allChecked = checkedSets.every(Boolean);
+
+  useEffect(() => {
+    if (syncRevision <= 0 || !syncedSets) return;
+    setCompletedSets(previous => Array.from({ length: item.sets }, (_, setIndex) => ({
+      reps: syncedSets[setIndex]?.reps ?? previous[setIndex]?.reps ?? targetReps,
+      weight: syncedSets[setIndex]?.weight ?? previous[setIndex]?.weight ?? 0,
+      completed: syncedSets[setIndex]?.completed ?? previous[setIndex]?.completed ?? false,
+    })));
+    setCheckedSets(Array.from({ length: item.sets }, (_, setIndex) => syncedSets[setIndex]?.completed ?? false));
+    if (syncedNotes !== undefined) setNotes(syncedNotes);
+  }, [item.sets, syncRevision, syncedNotes, syncedSets, targetReps]);
 
   const toggleSet = (i: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

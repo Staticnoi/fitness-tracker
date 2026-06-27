@@ -7,12 +7,15 @@ import * as Haptics from 'expo-haptics';
 import colors from '@/constants/colors';
 import WorkoutExerciseCard from '@/components/WorkoutExerciseCard';
 import NeonButton from '@/components/NeonButton';
+import TrainingHudOverlay from '@/components/TrainingHudOverlay';
 import { useApp } from '@/context/AppContext';
 import type { CompletedSet } from '@/types';
 import { dateKey } from '@/utils/progression';
 import { tr } from '@/utils/i18n';
+import { numericRepTarget } from '@/utils/workoutGenerator';
 
 const c = colors.dark;
+type HudMode = 'scanner' | 'counter';
 
 function formatTime(s: number): string {
   const m = Math.floor(s / 60);
@@ -28,6 +31,10 @@ export default function ActiveWorkoutScreen() {
   const language = state.language;
   const [elapsed, setElapsed] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [hudVisible, setHudVisible] = useState(false);
+  const [hudMode, setHudMode] = useState<HudMode>('scanner');
+  const [hudRevision, setHudRevision] = useState(0);
+  const [lastHudCapture, setLastHudCapture] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const workoutDay = state.workoutPlan?.days.find(d => d.id === dayId)
@@ -54,6 +61,32 @@ export default function ActiveWorkoutScreen() {
     exerciseData.current[index] = { sets, notes };
     if (dayId) updateWorkoutDraft(dayId, index, sets, notes);
   }, [dayId, updateWorkoutDraft]);
+
+  const openHud = (mode: HudMode) => {
+    setHudMode(mode);
+    setHudVisible(true);
+  };
+
+  const applyRepSet = useCallback((exerciseIndex: number, reps: number) => {
+    if (!workoutDay) return;
+    const prescribed = workoutDay.exercises[exerciseIndex];
+    if (!prescribed) return;
+
+    const current = exerciseData.current[exerciseIndex] ?? { sets: [], notes: '' };
+    const defaultReps = numericRepTarget(prescribed.reps);
+    const sets = Array.from({ length: prescribed.sets }, (_, setIndex) => ({
+      reps: current.sets[setIndex]?.reps ?? defaultReps,
+      weight: current.sets[setIndex]?.weight ?? 0,
+      completed: current.sets[setIndex]?.completed ?? false,
+    }));
+    const firstOpenSet = sets.findIndex(set => !set.completed);
+    const targetSet = firstOpenSet >= 0 ? firstOpenSet : sets.length - 1;
+    sets[targetSet] = { ...sets[targetSet], reps, completed: true };
+
+    updateExercise(exerciseIndex, sets, current.notes);
+    setHudRevision(revision => revision + 1);
+    setLastHudCapture(`${prescribed.exercise.name} | set ${targetSet + 1} | ${reps} reps verified`);
+  }, [updateExercise, workoutDay]);
 
   const completeWorkout = () => {
     if (saving) return;
@@ -149,6 +182,29 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
+      <View style={styles.featureDock}>
+        <TouchableOpacity style={styles.hudButton} onPress={() => openHud('scanner')} activeOpacity={0.85}>
+          <Feather name="camera" size={17} color={c.neonCyan} />
+          <View style={styles.hudButtonTextWrap}>
+            <Text style={styles.hudButtonTitle}>AI Form Scanner</Text>
+            <Text style={styles.hudButtonSub}>HUD posture cues</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.hudButton} onPress={() => openHud('counter')} activeOpacity={0.85}>
+          <Feather name="activity" size={17} color={c.success} />
+          <View style={styles.hudButtonTextWrap}>
+            <Text style={styles.hudButtonTitle}>Rep Counter</Text>
+            <Text style={styles.hudButtonSub}>HUD set tracker</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+      {lastHudCapture && (
+        <View style={styles.hudStatus}>
+          <Feather name="check-circle" size={14} color={c.success} />
+          <Text style={styles.hudStatusText} numberOfLines={1}>{lastHudCapture}</Text>
+        </View>
+      )}
+
       {/* Exercise list */}
       <ScrollView style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: botPad + 100 }]}
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -156,6 +212,9 @@ export default function ActiveWorkoutScreen() {
           <WorkoutExerciseCard key={ex.exercise.id + i} item={ex} index={i}
             initialSets={sessionDraft[i]?.sets}
             initialNotes={sessionDraft[i]?.notes}
+            syncedSets={exerciseData.current[i]?.sets}
+            syncedNotes={exerciseData.current[i]?.notes}
+            syncRevision={hudRevision}
             onUpdate={(sets, notes) => updateExercise(i, sets, notes)} />
         ))}
       </ScrollView>
@@ -164,6 +223,13 @@ export default function ActiveWorkoutScreen() {
       <View style={[styles.footer, { paddingBottom: botPad + 12 }]}>
         <NeonButton title={tr(language, 'active.clear')} size="lg" onPress={completeWorkout} loading={saving} style={styles.completeBtn} />
       </View>
+      <TrainingHudOverlay
+        visible={hudVisible}
+        initialMode={hudMode}
+        exercises={workoutDay.exercises}
+        onClose={() => setHudVisible(false)}
+        onApplyRepSet={applyRepSet}
+      />
     </View>
   );
 }
@@ -182,6 +248,13 @@ const styles = StyleSheet.create({
   statChip: { flex: 1, backgroundColor: c.card, borderRadius: 3, borderWidth: 1, borderColor: c.border, padding: 10, alignItems: 'center' },
   statVal: { fontFamily: 'Inter_700Bold', fontSize: 18, color: c.foreground },
   statLbl: { fontFamily: 'Inter_400Regular', fontSize: 11, color: c.mutedForeground },
+  featureDock: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 8 },
+  hudButton: { flex: 1, minHeight: 54, borderRadius: 8, borderWidth: 1, borderColor: c.neonCyan + '45', backgroundColor: c.darkCard, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 9 },
+  hudButtonTextWrap: { flex: 1 },
+  hudButtonTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, color: c.foreground },
+  hudButtonSub: { fontFamily: 'Inter_400Regular', fontSize: 11, color: c.mutedForeground, marginTop: 2 },
+  hudStatus: { minHeight: 32, marginHorizontal: 16, marginBottom: 8, borderRadius: 8, borderWidth: 1, borderColor: c.success + '55', backgroundColor: c.success + '12', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hudStatusText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12, color: c.success },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 16, paddingTop: 4, gap: 2 },
   footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background },
